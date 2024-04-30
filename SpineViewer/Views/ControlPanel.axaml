@@ -1,0 +1,189 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+			 xmlns:converters="using:SpineViewer.Converters"
+			 xmlns:System="clr-namespace:System;assembly=mscorlib"
+			 xmlns:local="clr-namespace:SpineViewer"
+			 xmlns:vm="clr-namespace:SpineViewer.ViewModels"
+             mc:Ignorable="d"
+             x:Class="SpineViewer.Views.ControlPanel">
+	<Design.DataContext>
+		<vm:MainViewModel />
+	</Design.DataContext>
+	<UserControl.Resources>
+		<converters:PathToFileNameConverter x:Key="pathNameConverter"/>
+	</UserControl.Resources>
+	
+	<Grid RowDefinitions="Auto,30,Auto,30,Auto">
+		<Grid RowDefinitions="Auto,10,Auto,10,Auto,20,Auto">
+			<StackPanel Orientation="Vertical"
+						Spacing="2">
+				<TextBlock Text="Atlas File"/>
+				<Border BorderThickness="{DynamicResource TextControlBorderThemeThickness}"
+						BorderBrush="{DynamicResource TextControlBorderBrush}"
+						CornerRadius="{DynamicResource ControlCornerRadius}"
+						HorizontalAlignment="Stretch">
+					<Grid ColumnDefinitions="*,Auto">
+						<TextBox Width="175"
+								 BorderThickness="1"
+								 BorderBrush="Transparent"
+								 Watermark=".atlas"
+								 Text="{Binding AtlasFile}"/>
+						<Button Content="Browse"
+								HorizontalAlignment="Right"
+								Grid.Column="1"
+								Command="{Binding OpenAtlasFileDialogCommand}"/>
+					</Grid>
+				</Border>
+			</StackPanel>
+			<StackPanel Orientation="Vertical"
+						Spacing="2"
+						Grid.Row="2">
+				<TextBlock Text="Skeleton File"/>
+				<Border BorderThickness="{DynamicResource TextControlBorderThemeThickness}"
+						BorderBrush="{DynamicResource TextControlBorderBrush}"
+						CornerRadius="{DynamicResource ControlCornerRadius}"
+						HorizontalAlignment="Stretch">
+					<Grid ColumnDefinitions="*,Auto">
+						<TextBox Width="175"
+								 BorderThickness="1"
+								 BorderBrush="Transparent"
+								 Watermark=".skel | .json"
+								 Text="{Binding SkeletonFile}"/>
+						<Button Content="Browse"
+								HorizontalAlignment="Right"
+								Grid.Column="1"
+								Command="{Binding OpenSkelFileDialogCommand}"/>
+					</Grid>
+				</Border>
+			</StackPanel>
+			<StackPanel Orientation="Vertical"
+						Spacing="2"
+						Grid.Row="4">
+				<TextBlock Text="Spine Version"/>
+				<ComboBox ItemsSource="{Binding SpineVersions}"
+						  SelectedItem="{Binding SelectedSpineVersion}"
+						  HorizontalAlignment="Stretch"/>
+			</StackPanel>
+
+			<Button Content="Load Spine Model"
+					Grid.Row="6"
+					HorizontalContentAlignment="Center"
+					HorizontalAlignment="Stretch"
+					Command="{Binding LoadSpineModelCommand}"/>
+		</Grid>
+		
+		<Separator Grid.Row="1"/>
+		
+		<Grid Grid.Row="2"
+			  ColumnDefinitions="*,2*"
+			  RowDefinitions="Auto,Auto,Auto">
+			<TextBlock Text="Scale"
+					   VerticalAlignment="Center"/>
+			<NumericUpDown Grid.Column="1"
+						   Increment="0.1"
+						   Margin="5"
+						   HorizontalContentAlignment="Center"
+						   Value="{Binding Scale, Mode=TwoWay, FallbackValue=1}"/>
+		</Grid>
+
+		<Separator Grid.Row="3"/>
+
+		<Grid Grid.Row="4"
+			  RowDefinitions="Auto,Auto,Auto">
+			<TextBlock Text="Animations"
+					   VerticalAlignment="Center"
+					   HorizontalAlignment="Center"
+					   FontWeight="Bold"/>
+			<TextBlock Grid.Row="1"
+					   Margin="0,10,0,0"
+					   Text="Tracks"
+					   VerticalAlignment="Center"/>
+			<Grid Grid.Row="2"
+				  Margin="0,5"
+				  RowDefinitions="180,Auto,Auto,Auto">
+				<ListBox ItemsSource="{Binding Tracks}"
+						 SelectedItem="{Binding CurrentTrack}"
+						 SelectionMode="Single">
+					<ListBox.ItemTemplate>
+						<DataTemplate>
+							<TextBlock Text="{Binding Name}"/>
+						</DataTemplate>
+					</ListBox.ItemTemplate>
+				</ListBox>
+				<UniformGrid Columns="2"
+							 Grid.Row="1">
+					<Button Content="Add"
+							HorizontalAlignment="Stretch"
+							HorizontalContentAlignment="Center"
+							Margin="0,4,2,4"
+							Command="{Binding AddAnimationTrackCommand}"/>
+					<Button Content="Remove"
+							HorizontalAlignment="Stretch"
+							HorizontalContentAlignment="Center"
+							Margin="2,4,0,4"
+							Command="{Binding DeleteAnimationTrackCommand}"/>
+				</UniformGrid>
+
+				<Grid Grid.Row="3"
+					  Margin="0,10,0,0"
+					  ColumnDefinitions=".5*,*"
+					  RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto">
+					<TextBlock Text="Selected Track"
+							   Grid.ColumnSpan="2"
+							   VerticalAlignment="Center"
+							   HorizontalAlignment="Center"
+							   Margin="0,5,0,5"
+							   FontWeight="DemiBold"/>
+
+					<TextBlock Grid.Row="1"
+							   Margin="0,0,0,0"
+							   Text="Animation"
+							   VerticalAlignment="Center"/>
+					<ComboBox Grid.Row="1"
+							  Grid.Column="1"
+							  HorizontalAlignment="Stretch"
+							  Margin="5"
+							  IsEnabled="{Binding HasCurrentTrackSelected}"
+							  SelectedItem="{Binding CurrentTrack.Name, Mode=TwoWay}"
+							  ItemsSource="{Binding Animations}"/>
+					<TextBlock Grid.Row="2"
+							   Text="Index"
+							   VerticalAlignment="Center"/>
+					<NumericUpDown Grid.Row="2"
+								   Grid.Column="1"
+								   Increment="1"
+								   Margin="5"
+								   IsEnabled="{Binding HasCurrentTrackSelected}"
+								   HorizontalContentAlignment="Center"
+								   Value="{Binding CurrentTrack.TrackIndex, Mode=TwoWay}"/>
+					<TextBlock Grid.Row="3"
+							   Text="Time Scale"
+							   VerticalAlignment="Center"/>
+					<NumericUpDown Grid.Row="3"
+								   Grid.Column="1"
+								   Increment="0.1"
+								   Margin="5"
+								   IsEnabled="{Binding HasCurrentTrackSelected}"
+								   HorizontalContentAlignment="Center"
+								   Value="{Binding CurrentTrack.Timescale, Mode=TwoWay}"/>
+					<TextBlock Grid.Row="4"
+							   VerticalAlignment="Center"
+							   Text="Loop"/>
+					<CheckBox Grid.Row="4"
+							  Grid.Column="1"
+							  IsEnabled="{Binding HasCurrentTrackSelected}"
+							  HorizontalAlignment="Right"
+							  IsChecked="{Binding CurrentTrack.Loop, Mode=TwoWay}"/>
+					<Button Grid.Row="5"
+							Grid.ColumnSpan="2"
+							HorizontalAlignment="Stretch"
+							HorizontalContentAlignment="Center"
+							Content="Apply Changes"
+							Command="{Binding ApplyAnimationsCommand}"/>
+				</Grid>
+			</Grid>
+		</Grid>
+	</Grid>
+</UserControl>
