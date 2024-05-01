@@ -5,7 +5,6 @@ using CommunityToolkit.Mvvm.Input;
 using SpineViewer.Spine;
 using SpineViewer.Spine.Renderers;
 using System.Collections.Generic;
-using System.Collections.ObjectModel;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.Serialization;
@@ -72,17 +71,11 @@ public partial class MainViewModel : ViewModelBase
 
     [RelayCommand]
     public async Task OpenAtlasFileDialogAsync()
-    {
-        var path = await OpenFileDialogAsync("Select Atlas file", "Atlas", "*.atlas");
-        AtlasFile = path;
-    }
+        => AtlasFile = await OpenFileDialogAsync("Select Atlas file", "Atlas", "*.atlas");
 
     [RelayCommand]
     public async Task OpenSkelFileDialogAsync()
-    {
-        var path = await OpenFileDialogAsync("Select Skeleton file", "Skeleton Data", "*.skel|*.json");
-        SkeletonFile = path;
-    }
+        => SkeletonFile = await OpenFileDialogAsync("Select Skeleton file", "Skeleton Data", "*.skel|*.json");
 
     [RelayCommand(CanExecute = nameof(CanAddAnimationTrack))]
     public void AddAnimationTrack()

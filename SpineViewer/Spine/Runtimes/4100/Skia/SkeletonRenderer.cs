@@ -47,6 +47,10 @@ public class SkeletonRenderer
             skeletonA = skeleton.A;
         var clipper = new SkeletonClipping();
 
+        SKBitmap? rendererObject = null;
+        SKShader? sKShader = null;
+        using var blur = SKImageFilter.CreateBlur(15f, 15f);
+
         for (int i = 0, n = drawOrder.Count; i < n; i++)
         {
             var slot = drawOrderItems[i];
@@ -56,7 +60,6 @@ public class SkeletonRenderer
                 attachmentColorG = 0,
                 attachmentColorB = 0,
                 attachmentColorA = 0;
-            SKBitmap? rendererObject = null;
             int verticesCount = 0,
                 indicesCount = 0;
             int[] indices = [];
@@ -72,12 +75,20 @@ public class SkeletonRenderer
                 attachmentColorA = a;
             }
 
+            void SetRendererObject(SKBitmap bitmap)
+            {
+                if (rendererObject == bitmap) return;
+                rendererObject = bitmap;
+                sKShader?.Dispose();
+                sKShader = rendererObject.ToShader();
+            }
+
             // Attachments
             switch (attachment)
             {
-                case RegionAttachment regionAttachment:
+                case RegionAttachment regionAttachment when GetRendererObject(regionAttachment.Region) is SKBitmap rendererObj:
                     SetAttachmentColors(regionAttachment.R, regionAttachment.G, regionAttachment.B, regionAttachment.A);
-                    rendererObject = GetRendererObject(regionAttachment.Region);
+                    SetRendererObject(rendererObj);
                     verticesCount = 4;
                     regionAttachment.ComputeWorldVertices(slot, vertices, 0);
                     indicesCount = 6;
@@ -85,9 +96,9 @@ public class SkeletonRenderer
                     uvs = regionAttachment.UVs;
                     premul = rendererObject?.AlphaType == SKAlphaType.Premul;
                     break;
-                case MeshAttachment meshAttachment:
+                case MeshAttachment meshAttachment when GetRendererObject(meshAttachment.Region) is SKBitmap rendererObj:
                     SetAttachmentColors(meshAttachment.R, meshAttachment.G, meshAttachment.B, meshAttachment.A);
-                    rendererObject = GetRendererObject(meshAttachment.Region);
+                    SetRendererObject(rendererObj);
                     var vertexCount = meshAttachment.WorldVerticesLength;
 
                     if (vertices.Length < vertexCount)
@@ -157,15 +168,13 @@ public class SkeletonRenderer
 
             // TODO: Conditional blur setting
             using var paint = new SKPaint();
-            using var shader = rendererObject?.ToShader();
             using var colorFilter = SKColorFilter.CreateLighting((SKColor)color, (SKColor)dark);
-            using var blur = SKImageFilter.CreateBlur(15f, 15f);
             paint.ColorFilter = colorFilter;
             paint.BlendMode = blendMode;
             paint.ColorF = color;
             paint.FilterQuality = SKFilterQuality.High;
             paint.IsAntialias = true;
-            paint.Shader = shader;
+            paint.Shader = sKShader;
             if (blendMode == SKBlendMode.Plus)
                 paint.ImageFilter = blur;
 
@@ -175,6 +184,7 @@ public class SkeletonRenderer
             clipper.ClipEnd(slot);
         }
         clipper.ClipEnd();
+        sKShader?.Dispose();
     }
 
     private SKBitmap? GetRendererObject(TextureRegion region)

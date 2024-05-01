@@ -75,13 +75,11 @@ public class SpineViewControl : Control
     {
         if (_matrix.IsIdentity)
             _matrix = Matrix.CreateTranslation(Bounds.Width / 2, Bounds.Height).Append(Matrix.CreateScale(Scale, Scale));
-        context.DrawRectangle(Brushes.Transparent, null, new(0, 0, Bounds.Width, Bounds.Height));
         if (_renderer == null) return;
         context.Custom(new SpriteDrawOp(_renderer, new Rect(0, 0, Bounds.Width, Bounds.Height), _matrix.ToSKMatrix()));
         Dispatcher.UIThread.InvokeAsync(() =>
         {
-            if (_renderer is ISpineRenderer spineRenderer)
-                spineRenderer.NextFrame(1f / Fps);
+            _renderer.NextFrame(1f / Fps);
             InvalidateVisual();
         }, DispatcherPriority.Background);
     }
@@ -149,28 +147,26 @@ public class SpineViewControl : Control
 public class SpriteDrawOp(ISpineRenderer spineRenderer, Rect bounds, SKMatrix matrix) : ICustomDrawOperation
 {
     private readonly ISpineRenderer _spineRenderer = spineRenderer;
-    private readonly Rect _bounds = bounds;
 
-    public Rect Bounds => _bounds;
-    public bool HitTest(Point p) => false;
+    public Rect Bounds => bounds;
+    public bool HitTest(Point p)
+    {
+        return p.X <= Bounds.Width && p.X >= 0 && p.Y <= Bounds.Height && p.Y >= 0;
+    }
     public bool Equals(ICustomDrawOperation? other) => false;
 
     public void Render(ImmediateDrawingContext context)
     {
-        var leaseFeature = context.TryGetFeature<ISkiaSharpApiLeaseFeature>();
-        if (leaseFeature != null)
-        {
-            using var lease = leaseFeature.Lease();
-            var canvas = lease.SkCanvas;
+        if (context.TryGetFeature<ISkiaSharpApiLeaseFeature>() is not ISkiaSharpApiLeaseFeature leaseFeature)
+            return;
 
-            canvas.Save();
-            canvas.SetMatrix(matrix);
-            canvas.Clear(SKColors.Black);
+        using var lease = leaseFeature.Lease();
+        var canvas = lease.SkCanvas;
 
-            _spineRenderer.Draw(canvas);
+        canvas.SetMatrix(matrix);
+        canvas.Clear(SKColors.Black);
 
-            canvas.Restore();
-        }
+        _spineRenderer.Draw(canvas);
     }
 
     public void Dispose()

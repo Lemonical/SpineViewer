@@ -1,5 +1,4 @@
-﻿using Avalonia;
-using SkiaSharp;
+﻿using SkiaSharp;
 using System;
 using System.IO;
 
@@ -26,7 +25,7 @@ public class SpineTextureLoader : TextureLoader
 
     public void Unload(object texture)
     {
-        if (texture is SKImage image)
-            image.Dispose();
+        if (texture is SKBitmap bitmap)
+            bitmap.Dispose();
     }
 }

@@ -81,14 +81,8 @@ public class Spine_3895_Renderer : ISpineRenderer
 
     public SpineAnimation[] GetCurrentAnimations()
     {
-        var tracks = _animationState.Tracks;
-        var list = new List<SpineAnimation>(tracks.Count);
-        foreach (var track in tracks)
-        {
-            list.Add(new(track.TrackIndex, track.Animation.Name, track.Loop, track.TimeScale));
-        }
-
-        return [.. list];
+        return [.. _animationState.Tracks
+            .Select(x => new SpineAnimation(x.TrackIndex, x.Animation.Name, x.Loop, x.TimeScale))];
     }
 
     public List<string> GetAnimations()
