@@ -6,4 +6,8 @@ This is a simple program to view Spine models, built on Avalonia. It supports mu
 * 4.1.00
 
 ## Prerequisites
-* .NET 8
+* .NET 8 SDK
+
+## See Also
+* [SpineViewerWPF](https://github.com/kiletw/SpineViewerWPF) - WPF alternative
+* [spine-runtimes](https://github.com/EsotericSoftware/spine-runtimes) - Official Spine Runtimes repo
