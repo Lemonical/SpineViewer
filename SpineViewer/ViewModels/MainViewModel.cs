@@ -113,6 +113,7 @@ public partial class MainViewModel : ViewModelBase
     [RelayCommand(CanExecute = nameof(CanLoadSpineModel))]
     public void LoadSpineModel()
     {
+        Tracks = [];
         var version = GetSpineVersion(SelectedSpineVersion);
 
         ISpineRenderer renderer = version switch
