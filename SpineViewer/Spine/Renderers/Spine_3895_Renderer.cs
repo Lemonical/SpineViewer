@@ -14,6 +14,7 @@ public class Spine_3895_Renderer : ISpineRenderer
     private Skeleton _skeleton;
     private SkeletonData _skeletonData;
     private SkeletonRenderer _skeletonRenderer;
+    private Atlas? _atlas;
 
     public void Initialize(params string[] path)
     {
@@ -25,8 +26,9 @@ public class Spine_3895_Renderer : ISpineRenderer
         Bone.yDown = true;
 
         var textureLoader = new SpineTextureLoader();
-        var atlas = new Atlas(atlasFile, textureLoader);
-        var attachmentLoader = new AtlasAttachmentLoader(atlas);
+        _atlas?.Dispose();
+        _atlas = new Atlas(atlasFile, textureLoader);
+        var attachmentLoader = new AtlasAttachmentLoader(_atlas);
 
         if (Path.GetExtension(skeletonFile) == ".json")
         {
@@ -75,8 +77,8 @@ public class Spine_3895_Renderer : ISpineRenderer
 
     private void SetAnimationInternal(SpineAnimation animation)
     {
-        var state = _animationState.SetAnimation(animation.TrackIndex, animation.Name, animation.Loop);
-        state.TimeScale = animation.Timescale;
+        var track = _animationState.SetAnimation(animation.TrackIndex, animation.Name, animation.Loop);
+        track.TimeScale = animation.Timescale;
     }
 
     public SpineAnimation[] GetCurrentAnimations()

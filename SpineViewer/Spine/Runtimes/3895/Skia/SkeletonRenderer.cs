@@ -48,7 +48,7 @@ public class SkeletonRenderer
         var clipper = new SkeletonClipping();
 
         SKBitmap? rendererObject = null;
-        SKShader? sKShader = null;
+        SKShader? shader = null;
         using var blur = SKImageFilter.CreateBlur(15f, 15f);
 
         for (int i = 0, n = drawOrder.Count; i < n; i++)
@@ -79,8 +79,8 @@ public class SkeletonRenderer
             {
                 if (rendererObject == bitmap) return;
                 rendererObject = bitmap;
-                sKShader?.Dispose();
-                sKShader = rendererObject.ToShader();
+                shader?.Dispose();
+                shader = rendererObject.ToShader();
             }
 
             // Attachments
@@ -140,8 +140,8 @@ public class SkeletonRenderer
                 skeletonB * slot.B * attachmentColorB * (premul ? a : 1),
                 a),
                 dark = slot.HasSecondColor
-                ? new(slot.R2 * a, slot.G2 * a, slot.B2 * a, premul ? 1 : 0)
-                : new(0, 0, 0, premul ? 1 : 0);
+                    ? new(slot.R2 * a, slot.G2 * a, slot.B2 * a, premul ? 1 : 0)
+                    : new(0, 0, 0, premul ? 1 : 0);
 
             // Clip
             if (clipper.IsClipping)
@@ -168,15 +168,19 @@ public class SkeletonRenderer
 
             // TODO: Conditional blur setting
             using var paint = new SKPaint();
-            using var colorFilter = SKColorFilter.CreateLighting((SKColor)color, (SKColor)dark);
-            paint.ColorFilter = colorFilter;
             paint.BlendMode = blendMode;
             paint.ColorF = color;
             paint.FilterQuality = SKFilterQuality.High;
             paint.IsAntialias = true;
-            paint.Shader = sKShader;
+            paint.Shader = shader;
+
             if (blendMode == SKBlendMode.Plus)
                 paint.ImageFilter = blur;
+            if (slot.HasSecondColor)
+            {
+                using var colorFilter = SKColorFilter.CreateLighting((SKColor)color, (SKColor)dark);
+                paint.ColorFilter = colorFilter;
+            }
 
             canvas.DrawVertices(SKVertices.CreateCopy(SKVertexMode.Triangles,
                 [.. positions], [.. textures], null, [.. indices.Select(x => (ushort)x)]), SKBlendMode.SrcOver, paint);
@@ -184,7 +188,7 @@ public class SkeletonRenderer
             clipper.ClipEnd(slot);
         }
         clipper.ClipEnd();
-        sKShader?.Dispose();
+        shader?.Dispose();
     }
 
     private SKBitmap? GetRendererObject(object region)

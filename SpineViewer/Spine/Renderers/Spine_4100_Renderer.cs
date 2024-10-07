@@ -14,6 +14,7 @@ public class Spine_4100_Renderer : ISpineRenderer
     private Skeleton _skeleton;
     private SkeletonData _skeletonData;
     private SkeletonRenderer _skeletonRenderer;
+    private Atlas? _atlas;
 
     public void Initialize(params string[] path)
     {
@@ -25,8 +26,9 @@ public class Spine_4100_Renderer : ISpineRenderer
         Bone.yDown = true;
 
         var textureLoader = new SpineTextureLoader();
-        var atlas = new Atlas(atlasFile, textureLoader);
-        var attachmentLoader = new AtlasAttachmentLoader(atlas);
+        _atlas?.Dispose();
+        _atlas = new Atlas(atlasFile, textureLoader);
+        var attachmentLoader = new AtlasAttachmentLoader(_atlas);
 
         SkeletonLoader loader = Path.GetExtension(skeletonFile) == ".json"
             ? new SkeletonJson(attachmentLoader)

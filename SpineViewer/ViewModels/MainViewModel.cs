@@ -5,6 +5,7 @@ using CommunityToolkit.Mvvm.Input;
 using SpineViewer.Spine;
 using SpineViewer.Spine.Renderers;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.Serialization;
@@ -75,7 +76,13 @@ public partial class MainViewModel : ViewModelBase
 
     [RelayCommand]
     public async Task OpenSkelFileDialogAsync()
-        => SkeletonFile = await OpenFileDialogAsync("Select Skeleton file", "Skeleton Data", "*.skel|*.json");
+    {
+        SkeletonFile = await OpenFileDialogAsync("Select Skeleton file", "Skeleton Data", "*.skel|*.json");
+
+        var sv = GetSuggestedSpineVersion(GetSpineFileVersion());
+        if (string.IsNullOrWhiteSpace(sv) || sv == SelectedSpineVersion) return;
+        SelectedSpineVersion = sv;
+    }
 
     [RelayCommand(CanExecute = nameof(CanAddAnimationTrack))]
     public void AddAnimationTrack()
@@ -157,5 +164,40 @@ public partial class MainViewModel : ViewModelBase
             .Cast<EnumMemberAttribute>()
             .Any(a => a.Value == version))!
             .GetValue(null)!;
+    }
+
+    private string GetSpineFileVersion()
+    {
+        if (string.IsNullOrWhiteSpace(SkeletonFile)) return string.Empty;
+
+        using var fs = File.OpenRead(SkeletonFile);
+        return Spine_4100.SkeletonBinary.GetVersionString(fs);
+    }
+
+    private string GetSuggestedSpineVersion(string exportVersion)
+    {
+        var suggested = string.Empty;
+
+        if (!exportVersion.Any(x => x == '.'))
+            return suggested;
+
+        var exportVersionParts = exportVersion.Split('.');
+        var exportVersionMajor = int.Parse(exportVersionParts[0]);
+        var exportVersionMinor = int.Parse(exportVersionParts[1]);
+
+        foreach (string runtimeVersion in SpineVersions)
+        {
+            var runtimeVersionParts = runtimeVersion.Split('.');
+            var runtimeVersionMajor = int.Parse(runtimeVersionParts[0]);
+            var runtimeVersionMinor = int.Parse(runtimeVersionParts[1]);
+
+            if (exportVersionMajor != runtimeVersionMajor && exportVersionMinor != runtimeVersionMinor)
+                continue;
+
+            suggested = runtimeVersion;
+            break;
+        }
+
+        return suggested;
     }
 }

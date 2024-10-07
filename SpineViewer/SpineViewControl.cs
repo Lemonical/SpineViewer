@@ -62,8 +62,7 @@ public class SpineViewControl : Control
 
     public SpineViewControl()
     {
-        AffectsRender<SpineViewControl>(AnimationTracksProperty);
-        AffectsRender<SpineViewControl>(RendererProperty);
+        AffectsRender<SpineViewControl>(AnimationTracksProperty, RendererProperty);
         ClipToBounds = true;
 
         AddHandler(PointerPressedEvent, PointerPressedHandler);
@@ -118,7 +117,9 @@ public class SpineViewControl : Control
     {
         var currentPoint = e.GetPosition(this);            
         var delta = e.Delta.Y;
-        var scale = delta > 0 ? 1.2 : 1 / 1.2;
+        var scale = delta > 0 
+            ? 1.2 
+            : 1 / 1.2;
         ChangeScale(scale, currentPoint.X, currentPoint.Y);
     }
 
