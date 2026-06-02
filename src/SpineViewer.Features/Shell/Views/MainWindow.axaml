@@ -26,12 +26,12 @@
             <StackPanel Spacing="12">
                 <TextBlock FontSize="20" FontWeight="SemiBold" Text="What this proves" />
                 <TextBlock TextWrapping="Wrap">
-                    Intentionally minimal, but provides a clean app startup path
-                    before model loading and inspection features are actually implemented.
+                    Intentionally minimal, but already backed by stable session,
+                    playback, viewport, diagnostics, and settings contracts.
                 </TextBlock>
                 <TextBlock TextWrapping="Wrap">
-                    The main window and view model are resolved through dependency injection and the
-                    startup pipeline runs before the shell is presented.
+                    The main window and view model are resolved through dependency injection,
+                    and the startup pipeline runs before the shell is presented.
                 </TextBlock>
             </StackPanel>
         </Border>
