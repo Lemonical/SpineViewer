@@ -1,62 +1,71 @@
 namespace SpineViewer.Core.Models;
 
 /// <summary>
-/// Describes the major feature areas a runtime adapter can support.
+/// Describes the runtime features a runtime adapter can support.
 /// </summary>
 public sealed record SpineRuntimeCapabilities
 {
     /// <summary>
     /// Initializes a new instance of the <see cref="SpineRuntimeCapabilities"/> class.
     /// </summary>
-    /// <param name="supportsJsonSkeleton">Indicates whether JSON skeleton files are supported.</param>
-    /// <param name="supportsBinarySkeleton">Indicates whether binary skeleton files are supported.</param>
-    /// <param name="supportsEvents">Indicates whether Spine events are supported.</param>
-    /// <param name="supportsClipping">Indicates whether clipping attachments are supported.</param>
-    /// <param name="supportsMeshes">Indicates whether mesh attachments are supported.</param>
-    /// <param name="supportsMultipleTracks">Indicates whether multiple animation tracks are supported.</param>
-    public SpineRuntimeCapabilities(
-        bool supportsJsonSkeleton,
-        bool supportsBinarySkeleton,
-        bool supportsEvents,
-        bool supportsClipping,
-        bool supportsMeshes,
-        bool supportsMultipleTracks)
+    /// <param name="featureSupport">The feature support metadata exposed by the runtime.</param>
+    public SpineRuntimeCapabilities(IEnumerable<SpineRuntimeFeatureSupport> featureSupport)
     {
-        SupportsJsonSkeleton = supportsJsonSkeleton;
-        SupportsBinarySkeleton = supportsBinarySkeleton;
-        SupportsEvents = supportsEvents;
-        SupportsClipping = supportsClipping;
-        SupportsMeshes = supportsMeshes;
-        SupportsMultipleTracks = supportsMultipleTracks;
+        FeatureSupport = BuildFeatureSupport(featureSupport);
     }
 
     /// <summary>
-    /// Gets a value indicating whether JSON skeleton files are supported.
+    /// Gets the feature support metadata exposed by the runtime.
     /// </summary>
-    public bool SupportsJsonSkeleton { get; init; }
+    public IReadOnlyList<SpineRuntimeFeatureSupport> FeatureSupport { get; init; }
 
     /// <summary>
-    /// Gets a value indicating whether binary skeleton files are supported.
+    /// Gets the feature support entry for the requested runtime feature.
     /// </summary>
-    public bool SupportsBinarySkeleton { get; init; }
+    /// <param name="feature">The runtime feature to inspect.</param>
+    /// <returns>The matching support entry.</returns>
+    public SpineRuntimeFeatureSupport GetSupport(SpineRuntimeFeature feature)
+    {
+        foreach (SpineRuntimeFeatureSupport support in FeatureSupport)
+        {
+            if (support.Feature == feature)
+            {
+                return support;
+            }
+        }
+
+        return new SpineRuntimeFeatureSupport(feature, false);
+    }
 
     /// <summary>
-    /// Gets a value indicating whether Spine events are supported.
+    /// Gets a value indicating whether the runtime supports the requested feature.
     /// </summary>
-    public bool SupportsEvents { get; init; }
+    /// <param name="feature">The runtime feature to inspect.</param>
+    /// <returns><see langword="true"/> when the feature is supported; otherwise, <see langword="false"/>.</returns>
+    public bool Supports(SpineRuntimeFeature feature)
+    {
+        return GetSupport(feature).IsSupported;
+    }
 
-    /// <summary>
-    /// Gets a value indicating whether clipping attachments are supported.
-    /// </summary>
-    public bool SupportsClipping { get; init; }
+    private static IReadOnlyList<SpineRuntimeFeatureSupport> BuildFeatureSupport(
+        IEnumerable<SpineRuntimeFeatureSupport> featureSupport)
+    {
+        ArgumentNullException.ThrowIfNull(featureSupport);
 
-    /// <summary>
-    /// Gets a value indicating whether mesh attachments are supported.
-    /// </summary>
-    public bool SupportsMeshes { get; init; }
+        Dictionary<SpineRuntimeFeature, SpineRuntimeFeatureSupport> supportByFeature = [];
 
-    /// <summary>
-    /// Gets a value indicating whether multiple animation tracks are supported.
-    /// </summary>
-    public bool SupportsMultipleTracks { get; init; }
+        foreach (SpineRuntimeFeatureSupport support in featureSupport)
+        {
+            if (!supportByFeature.TryAdd(support.Feature, support))
+            {
+                throw new ArgumentException(
+                    $"Duplicate feature support metadata was provided for '{support.Feature}'.",
+                    nameof(featureSupport));
+            }
+        }
+
+        return supportByFeature.Values
+            .OrderBy(static support => support.Feature)
+            .ToArray();
+    }
 }

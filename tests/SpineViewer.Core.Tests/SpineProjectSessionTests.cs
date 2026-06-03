@@ -74,7 +74,15 @@ public sealed class SpineProjectSessionTests
             "spine-4.1.00",
             "Spine 4.1.00",
             "4.1.x",
-            new SpineRuntimeCapabilities(true, true, true, true, true, true));
+            new SpineRuntimeCapabilities(
+                [
+                    new(SpineRuntimeFeature.JsonSkeleton, true),
+                    new(SpineRuntimeFeature.BinarySkeleton, true),
+                    new(SpineRuntimeFeature.Events, true),
+                    new(SpineRuntimeFeature.Clipping, true),
+                    new(SpineRuntimeFeature.Meshes, true),
+                    new(SpineRuntimeFeature.MultipleTracks, true),
+                ]));
     }
 
     private static SpineVersionMatch CreateVersionMatch()
