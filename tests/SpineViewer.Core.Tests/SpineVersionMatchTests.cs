@@ -9,7 +9,12 @@ public sealed class SpineVersionMatchTests
     public void Constructor_RejectsExactMatchWithoutSuggestedRuntime()
     {
         Assert.Throws<ArgumentException>(
-            () => new SpineVersionMatch("4.1.00", null, true, Array.Empty<ViewerDiagnostic>()));
+            () => new SpineVersionMatch(
+                "4.1.00",
+                null,
+                ["spine-4.1.00"],
+                true,
+                Array.Empty<ViewerDiagnostic>()));
     }
 
     [Fact]
@@ -19,5 +24,18 @@ public sealed class SpineVersionMatchTests
 
         Assert.Null(versionMatch.DetectedExportVersion);
         Assert.Null(versionMatch.SuggestedRuntimeId);
+    }
+
+    [Fact]
+    public void Constructor_MaterializesDistinctCompatibleRuntimeIds()
+    {
+        SpineVersionMatch versionMatch = new(
+            "4.1.00",
+            "spine-4.1.00",
+            ["spine-4.1.00", "SPINE-4.1.00", "spine-3.8.95"],
+            false,
+            Array.Empty<ViewerDiagnostic>());
+
+        Assert.Equal(["spine-4.1.00", "spine-3.8.95"], versionMatch.CompatibleRuntimeIds);
     }
 }

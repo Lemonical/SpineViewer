@@ -14,19 +14,16 @@ public sealed record RuntimeSelectionRequest
     /// <param name="projectReference">The user-facing project reference.</param>
     /// <param name="assetFileSet">The resolved files to inspect.</param>
     /// <param name="versionMatch">The version-detection result to act on.</param>
-    /// <param name="availableRuntimes">The runtimes available for selection.</param>
     /// <param name="preferredRuntimeId">An optional caller preference for the runtime identifier.</param>
     public RuntimeSelectionRequest(
         SpineProjectReference projectReference,
         SpineAssetFileSet assetFileSet,
         SpineVersionMatch versionMatch,
-        IEnumerable<SpineRuntimeDescriptor> availableRuntimes,
         string? preferredRuntimeId = null)
     {
         ProjectReference = Guard.NotNull(projectReference, nameof(projectReference));
         AssetFileSet = Guard.NotNull(assetFileSet, nameof(assetFileSet));
         VersionMatch = Guard.NotNull(versionMatch, nameof(versionMatch));
-        AvailableRuntimes = Guard.MaterializeReadOnlyList(availableRuntimes, nameof(availableRuntimes));
         PreferredRuntimeId = Guard.NullIfWhiteSpace(preferredRuntimeId);
     }
 
@@ -44,11 +41,6 @@ public sealed record RuntimeSelectionRequest
     /// Gets the version-detection result to act on.
     /// </summary>
     public SpineVersionMatch VersionMatch { get; init; }
-
-    /// <summary>
-    /// Gets the runtimes available for selection.
-    /// </summary>
-    public IReadOnlyList<SpineRuntimeDescriptor> AvailableRuntimes { get; init; }
 
     /// <summary>
     /// Gets an optional caller preference for the runtime identifier.

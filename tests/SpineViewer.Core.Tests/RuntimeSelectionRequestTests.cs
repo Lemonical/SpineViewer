@@ -13,41 +13,25 @@ public sealed class RuntimeSelectionRequestTests
             new SpineProjectReference("Hero", "hero.json", "hero.atlas"),
             new SpineAssetFileSet("hero.json", "hero.atlas", ["hero.png"]),
             new SpineVersionMatch("4.1.00", "spine-4.1.00", true, Array.Empty<ViewerDiagnostic>()),
-            [new SpineRuntimeDescriptor(
-                "spine-4.1.00",
-                "Spine 4.1.00",
-                "4.1.x",
-                new SpineRuntimeCapabilities(true, true, true, true, true, true))],
             " ");
 
         Assert.Null(request.PreferredRuntimeId);
     }
 
     [Fact]
-    public void Constructor_MaterializesAvailableRuntimeCollection()
+    public void Constructor_AssignsProjectAndVersionInputs()
     {
-        List<SpineRuntimeDescriptor> runtimes =
-        [
-            new(
-                "spine-3.8.95",
-                "Spine 3.8.95",
-                "3.8.x",
-                new SpineRuntimeCapabilities(true, true, true, false, true, true)),
-        ];
-
         RuntimeSelectionRequest request = new(
             new SpineProjectReference("Hero", "hero.json", "hero.atlas"),
             new SpineAssetFileSet("hero.json", "hero.atlas", ["hero.png"]),
-            new SpineVersionMatch("3.8.95", "spine-3.8.95", true, Array.Empty<ViewerDiagnostic>()),
-            runtimes);
+            new SpineVersionMatch(
+                "3.8.95",
+                "spine-3.8.95",
+                ["spine-3.8.95", "spine-4.1.00"],
+                true,
+                Array.Empty<ViewerDiagnostic>()));
 
-        runtimes.Add(
-            new SpineRuntimeDescriptor(
-                "spine-4.1.00",
-                "Spine 4.1.00",
-                "4.1.x",
-                new SpineRuntimeCapabilities(true, true, true, true, true, true)));
-
-        Assert.Single(request.AvailableRuntimes);
+        Assert.Equal("Hero", request.ProjectReference.DisplayName);
+        Assert.Equal(["spine-3.8.95", "spine-4.1.00"], request.VersionMatch.CompatibleRuntimeIds);
     }
 }
