@@ -5,6 +5,8 @@ using SpineViewer.Core.Services;
 using SpineViewer.Features.Shell.ViewModels;
 using SpineViewer.Features.Shell.Views;
 using SpineViewer.Infrastructure.Diagnostics;
+using SpineViewer.Infrastructure.Spine.Adapters;
+using SpineViewer.Infrastructure.Spine.Loading;
 using SpineViewer.Infrastructure.Startup;
 
 namespace SpineViewer.App;
@@ -29,6 +31,10 @@ internal static class ServiceCollectionExtensions
         services.AddSingleton(typeof(IAppLogger<>), typeof(MicrosoftExtensionsAppLogger<>));
         services.AddSingleton<IApplicationStartupPipeline, ApplicationStartupPipeline>();
         services.AddSingleton<IApplicationStartupTask, LogApplicationStartupTask>();
+        services.AddSingleton<ISpineRuntimeAdapter, Spine38RuntimeAdapter>();
+        services.AddSingleton<ISpineRuntimeAdapter, Spine41RuntimeAdapter>();
+        services.AddSingleton<ISpineRuntimeCatalog, SpineRuntimeCatalog>();
+        services.AddSingleton<IRuntimeSelectionService, RuntimeSelectionService>();
 
         services.AddTransient<MainWindowViewModel>();
         services.AddTransient<MainWindow>();
