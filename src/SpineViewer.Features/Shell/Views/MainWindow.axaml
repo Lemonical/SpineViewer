@@ -27,11 +27,12 @@
                 <TextBlock FontSize="20" FontWeight="SemiBold" Text="What this proves" />
                 <TextBlock TextWrapping="Wrap">
                     Intentionally minimal, but already backed by stable session,
-                    playback, viewport, diagnostics, and settings contracts.
+                    playback, viewport, diagnostics, settings, and runtime-adapter contracts.
                 </TextBlock>
                 <TextBlock TextWrapping="Wrap">
                     The main window and view model are resolved through dependency injection,
-                    and the startup pipeline runs before the shell is presented.
+                    the startup pipeline runs before the shell is presented,
+                    and runtime selection is now driven by a cataloged adapter model.
                 </TextBlock>
             </StackPanel>
         </Border>
