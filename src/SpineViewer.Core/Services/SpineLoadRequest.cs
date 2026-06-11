@@ -15,16 +15,19 @@ public sealed record SpineLoadRequest
     /// <param name="assetFileSet">The resolved files to load.</param>
     /// <param name="versionMatch">The version-detection result associated with the load.</param>
     /// <param name="probeResult">The runtime probe result being used for the load.</param>
+    /// <param name="progress">The optional progress reporter for the load workflow.</param>
     public SpineLoadRequest(
         SpineProjectReference projectReference,
         SpineAssetFileSet assetFileSet,
         SpineVersionMatch versionMatch,
-        SpineRuntimeProbeResult probeResult)
+        SpineRuntimeProbeResult probeResult,
+        IProgress<SpineLoadProgress>? progress = null)
     {
         ProjectReference = Guard.NotNull(projectReference, nameof(projectReference));
         AssetFileSet = Guard.NotNull(assetFileSet, nameof(assetFileSet));
         VersionMatch = Guard.NotNull(versionMatch, nameof(versionMatch));
         ProbeResult = Guard.NotNull(probeResult, nameof(probeResult));
+        Progress = progress;
     }
 
     /// <summary>
@@ -46,4 +49,9 @@ public sealed record SpineLoadRequest
     /// Gets the runtime probe result being used for the load.
     /// </summary>
     public SpineRuntimeProbeResult ProbeResult { get; init; }
+
+    /// <summary>
+    /// Gets the optional progress reporter for the load workflow.
+    /// </summary>
+    public IProgress<SpineLoadProgress>? Progress { get; init; }
 }
