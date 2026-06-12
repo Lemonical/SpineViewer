@@ -42,3 +42,5 @@ internal static class ServiceCollectionExtensions
         return services;
     }
 }
+        services.AddSingleton<ISpineProjectReferenceResolver, SpineProjectReferenceResolver>();
+        services.AddSingleton<IVersionDetectionService, VersionDetectionService>();
