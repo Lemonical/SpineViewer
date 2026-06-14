@@ -34,7 +34,10 @@ internal static class ServiceCollectionExtensions
         services.AddSingleton<ISpineRuntimeAdapter, Spine38RuntimeAdapter>();
         services.AddSingleton<ISpineRuntimeAdapter, Spine41RuntimeAdapter>();
         services.AddSingleton<ISpineRuntimeCatalog, SpineRuntimeCatalog>();
+        services.AddSingleton<ISpineProjectReferenceResolver, SpineProjectReferenceResolver>();
+        services.AddSingleton<IVersionDetectionService, VersionDetectionService>();
         services.AddSingleton<IRuntimeSelectionService, RuntimeSelectionService>();
+        services.AddSingleton<ISpineProjectLoader, SpineProjectLoader>();
 
         services.AddTransient<MainWindowViewModel>();
         services.AddTransient<MainWindow>();
@@ -42,5 +45,3 @@ internal static class ServiceCollectionExtensions
         return services;
     }
 }
-        services.AddSingleton<ISpineProjectReferenceResolver, SpineProjectReferenceResolver>();
-        services.AddSingleton<IVersionDetectionService, VersionDetectionService>();
