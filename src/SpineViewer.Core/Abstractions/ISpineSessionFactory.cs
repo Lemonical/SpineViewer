@@ -12,6 +12,7 @@ public interface ISpineSessionFactory
     /// Creates a session model from a successful load result.
     /// </summary>
     /// <param name="loadResult">The load result to convert into a session.</param>
+    /// <param name="viewerSettings">The viewer settings that define default transient session state.</param>
     /// <returns>The durable application-facing session model.</returns>
-    SpineProjectSession Create(LoadSpineProjectResult loadResult);
+    SpineProjectSession Create(LoadSpineProjectResult loadResult, ViewerSettings viewerSettings);
 }

@@ -18,6 +18,8 @@ public sealed class ViewerSettingsTests
         Assert.True(settings.LoopPlaybackByDefault);
         Assert.Equal(1.0, settings.DefaultPlaybackSpeed);
         Assert.Equal(10, settings.RecentFilesLimit);
+        Assert.True(settings.RestoreLastSessionOnStartup);
+        Assert.Null(settings.LastProjectReference);
     }
 
     [Fact]
