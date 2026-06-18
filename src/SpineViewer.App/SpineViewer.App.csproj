@@ -17,8 +17,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\\SpineViewer.Core\\SpineViewer.Core.csproj" />
-    <ProjectReference Include="..\\SpineViewer.Features\\SpineViewer.Features.csproj" />
-    <ProjectReference Include="..\\SpineViewer.Infrastructure\\SpineViewer.Infrastructure.csproj" />
+    <ProjectReference Include="..\\SpineViewer.Core\\SpineViewer.Core.csproj" GlobalPropertiesToRemove="NuGetInteractive" />
+    <ProjectReference Include="..\\SpineViewer.Features\\SpineViewer.Features.csproj" GlobalPropertiesToRemove="NuGetInteractive" />
+    <ProjectReference Include="..\\SpineViewer.Infrastructure\\SpineViewer.Infrastructure.csproj" GlobalPropertiesToRemove="NuGetInteractive" />
   </ItemGroup>
 </Project>
