@@ -1,40 +1,102 @@
 using CommunityToolkit.Mvvm.ComponentModel;
+using SpineViewer.Core.Abstractions;
+using SpineViewer.Core.Models;
 
 namespace SpineViewer.Features.Shell.ViewModels;
 
 /// <summary>
-/// Presents the initial shell state while deeper features are still being built.
+/// Presents the main shell state for the rewrite-side workspace host.
 /// </summary>
-public sealed class MainWindowViewModel : ObservableObject
+public sealed partial class MainWindowViewModel : ObservableObject
 {
-    private string _title = "SpineViewer";
-    private string _welcomeMessage = "Welcome to SpineViewer.";
-    private string _statusText = "Ready.";
+    private readonly IWorkspaceSessionService _workspaceSessionService;
 
     /// <summary>
-    /// Gets or sets the shell window title.
+    /// Initializes a new instance of the <see cref="MainWindowViewModel"/> class.
     /// </summary>
-    public string Title
+    /// <param name="workspaceSessionService">The workspace service that drives shell session state.</param>
+    public MainWindowViewModel(IWorkspaceSessionService workspaceSessionService)
     {
-        get => _title;
-        set => SetProperty(ref _title, value);
+        _workspaceSessionService =
+            workspaceSessionService ?? throw new ArgumentNullException(nameof(workspaceSessionService));
+        _workspaceSessionService.StateChanged += OnWorkspaceStateChanged;
+        ApplyState(_workspaceSessionService.State);
     }
 
     /// <summary>
-    /// Gets or sets the primary empty-state message shown in the shell.
+    /// Gets the shell window title.
     /// </summary>
-    public string WelcomeMessage
-    {
-        get => _welcomeMessage;
-        set => SetProperty(ref _welcomeMessage, value);
-    }
+    public string Title => "SpineViewer";
 
     /// <summary>
-    /// Gets or sets the status line shown at the bottom of the shell.
+    /// Gets a value indicating whether a session is currently open.
     /// </summary>
-    public string StatusText
+    [ObservableProperty]
+    private bool hasActiveSession;
+
+    /// <summary>
+    /// Gets the primary empty-state or session message shown in the shell.
+    /// </summary>
+    [ObservableProperty]
+    private string welcomeMessage = "Welcome to SpineViewer.";
+
+    /// <summary>
+    /// Gets the current session summary shown in the shell.
+    /// </summary>
+    [ObservableProperty]
+    private string sessionSummary = "No session is currently open.";
+
+    /// <summary>
+    /// Gets the current runtime summary shown in the shell.
+    /// </summary>
+    [ObservableProperty]
+    private string runtimeSummary = "No runtime selected.";
+
+    /// <summary>
+    /// Gets the current recent-files summary shown in the shell.
+    /// </summary>
+    [ObservableProperty]
+    private string recentFilesSummary = "No recent projects yet.";
+
+    /// <summary>
+    /// Gets the current diagnostic summary shown in the shell.
+    /// </summary>
+    [ObservableProperty]
+    private string diagnosticSummary = "No diagnostics.";
+
+    /// <summary>
+    /// Gets the status line shown at the bottom of the shell.
+    /// </summary>
+    [ObservableProperty]
+    private string statusText = "Ready.";
+
+    private void ApplyState(WorkspaceState state)
     {
-        get => _statusText;
-        set => SetProperty(ref _statusText, value);
+        StatusText = state.StatusText;
+        HasActiveSession = state.HasSession;
+        RecentFilesSummary = state.RecentFiles.Count == 0
+            ? "No recent projects yet."
+            : string.Join(", ", state.RecentFiles.Select(static projectReference => projectReference.DisplayName));
+        DiagnosticSummary = state.Diagnostics.Count == 0
+            ? "No diagnostics."
+            : $"{state.Diagnostics.Count} diagnostic(s) available.";
+
+        if (state.CurrentSession is null)
+        {
+            WelcomeMessage = "Welcome to SpineViewer.";
+            SessionSummary = "No session is currently open.";
+            RuntimeSummary = "No runtime selected.";
+            return;
+        }
+
+        WelcomeMessage = state.CurrentSession.Project.DisplayName;
+        SessionSummary =
+            $"{state.CurrentSession.AssetFileSet.SkeletonPath} | {state.CurrentSession.AssetFileSet.AtlasPath}";
+        RuntimeSummary = state.CurrentSession.Runtime.DisplayName;
+    }
+
+    private void OnWorkspaceStateChanged(object? sender, EventArgs e)
+    {
+        ApplyState(_workspaceSessionService.State);
     }
 }

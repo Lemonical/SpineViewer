@@ -12,7 +12,7 @@
     <Grid RowDefinitions="Auto,*,Auto" Margin="28">
         <StackPanel Spacing="8">
             <TextBlock FontSize="30" FontWeight="SemiBold" Text="{Binding WelcomeMessage}" />
-            <TextBlock Classes="hint" Text="The app is now using its own src/tests composition root." />
+            <TextBlock Classes="hint" Text="{Binding RuntimeSummary}" />
         </StackPanel>
 
         <Border
@@ -24,16 +24,10 @@
             BorderThickness="1"
             CornerRadius="16">
             <StackPanel Spacing="12">
-                <TextBlock FontSize="20" FontWeight="SemiBold" Text="What this proves" />
-                <TextBlock TextWrapping="Wrap">
-                    Intentionally minimal, but already backed by stable session,
-                    playback, viewport, diagnostics, settings, and runtime-adapter contracts.
-                </TextBlock>
-                <TextBlock TextWrapping="Wrap">
-                    The main window and view model are resolved through dependency injection,
-                    the startup pipeline runs before the shell is presented,
-                    and runtime selection is now driven by a cataloged adapter model.
-                </TextBlock>
+                <TextBlock FontSize="20" FontWeight="SemiBold" Text="Workspace" />
+                <TextBlock TextWrapping="Wrap" Text="{Binding SessionSummary}" />
+                <TextBlock TextWrapping="Wrap" Text="{Binding DiagnosticSummary}" />
+                <TextBlock TextWrapping="Wrap" Text="{Binding RecentFilesSummary}" />
             </StackPanel>
         </Border>
 
