@@ -1,0 +1,80 @@
+using Avalonia.Media;
+
+namespace SpineViewer.Features.Viewport.Models;
+
+/// <summary>
+/// Represents the immutable render scene consumed by the view-only viewport host control.
+/// </summary>
+public sealed record ViewportRenderScene
+{
+    /// <summary>
+    /// Initializes a new instance of the <see cref="ViewportRenderScene"/> class.
+    /// </summary>
+    /// <param name="backgroundColor">The scene background color.</param>
+    /// <param name="transform">The camera transform that projects world-space geometry into screen space.</param>
+    /// <param name="worldLines">The world-space overlay lines to draw for this frame.</param>
+    /// <param name="frameVersion">The monotonically increasing frame version.</param>
+    /// <param name="hasActiveSession">Indicates whether the scene represents an active session.</param>
+    /// <param name="sessionName">The active session display name, if any.</param>
+    public ViewportRenderScene(
+        Color backgroundColor,
+        ViewportRenderTransform transform,
+        IEnumerable<ViewportOverlayLine> worldLines,
+        long frameVersion,
+        bool hasActiveSession,
+        string? sessionName)
+    {
+        if (frameVersion < 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(frameVersion), "Frame version cannot be negative.");
+        }
+
+        BackgroundColor = backgroundColor;
+        Transform = transform ?? throw new ArgumentNullException(nameof(transform));
+        WorldLines = worldLines?.ToArray() ?? throw new ArgumentNullException(nameof(worldLines));
+        FrameVersion = frameVersion;
+        HasActiveSession = hasActiveSession;
+        SessionName = sessionName ?? string.Empty;
+    }
+
+    /// <summary>
+    /// Gets the default empty render scene.
+    /// </summary>
+    public static ViewportRenderScene Empty { get; } = new(
+        Color.FromRgb(0x0D, 0x11, 0x18),
+        new ViewportRenderTransform(1.0, 0.0, 0.0),
+        Array.Empty<ViewportOverlayLine>(),
+        0,
+        false,
+        string.Empty);
+
+    /// <summary>
+    /// Gets the scene background color.
+    /// </summary>
+    public Color BackgroundColor { get; init; }
+
+    /// <summary>
+    /// Gets the camera transform that projects world-space geometry into screen space.
+    /// </summary>
+    public ViewportRenderTransform Transform { get; init; }
+
+    /// <summary>
+    /// Gets the world-space overlay lines to draw for this frame.
+    /// </summary>
+    public IReadOnlyList<ViewportOverlayLine> WorldLines { get; init; }
+
+    /// <summary>
+    /// Gets the monotonically increasing frame version.
+    /// </summary>
+    public long FrameVersion { get; init; }
+
+    /// <summary>
+    /// Gets a value indicating whether the scene represents an active session.
+    /// </summary>
+    public bool HasActiveSession { get; init; }
+
+    /// <summary>
+    /// Gets the active session display name, if any.
+    /// </summary>
+    public string SessionName { get; init; }
+}

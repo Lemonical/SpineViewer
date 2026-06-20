@@ -3,6 +3,9 @@ using Microsoft.Extensions.Logging;
 using SpineViewer.Core.Abstractions;
 using SpineViewer.Core.Services;
 using SpineViewer.Features.Shell.ViewModels;
+using SpineViewer.Features.Viewport.Contracts;
+using SpineViewer.Features.Viewport.Services;
+using SpineViewer.Features.Viewport.ViewModels;
 using SpineViewer.Features.Workspace.Services;
 using SpineViewer.Features.Shell.Views;
 using SpineViewer.Infrastructure.Diagnostics;
@@ -56,7 +59,17 @@ internal static class ServiceCollectionExtensions
         services.AddSingleton<ISpineProjectLoader, SpineProjectLoader>();
         services.AddSingleton<ISpineSessionFactory, SpineSessionFactory>();
         services.AddSingleton<IWorkspaceSessionService, WorkspaceSessionService>();
+        services.AddSingleton<IRenderInvalidationService, RenderInvalidationService>();
+        services.AddSingleton<IViewportFrameScheduler, ViewportFrameScheduler>();
+        services.AddSingleton<IViewportCameraService, ViewportCameraService>();
+        services.AddSingleton<IViewportOverlaySource, GridOverlaySource>();
+        services.AddSingleton<IViewportOverlaySource, SessionPlaceholderOverlaySource>();
+        services.AddSingleton<IViewportOverlaySource, BoneOverlaySource>();
+        services.AddSingleton<IViewportOverlaySource, BoundsOverlaySource>();
+        services.AddSingleton<IViewportOverlaySource, OriginOverlaySource>();
+        services.AddSingleton<IViewportSceneComposer, ViewportSceneComposer>();
 
+        services.AddTransient<ViewportViewModel>();
         services.AddTransient<MainWindowViewModel>();
         services.AddTransient<MainWindow>();
 
