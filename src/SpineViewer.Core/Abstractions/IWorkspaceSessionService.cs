@@ -25,6 +25,14 @@ public interface IWorkspaceSessionService
     Task InitializeAsync(CancellationToken cancellationToken);
 
     /// <summary>
+    /// Opens a Spine project from one or two user-selected files.
+    /// </summary>
+    /// <param name="selectedPaths">The selected atlas and/or skeleton paths.</param>
+    /// <param name="cancellationToken">A token that cancels the open operation.</param>
+    /// <returns>A task that completes when the open flow has finished.</returns>
+    Task OpenAsync(IReadOnlyList<string> selectedPaths, CancellationToken cancellationToken);
+
+    /// <summary>
     /// Opens a Spine project from one selected file and an optional explicit companion file.
     /// </summary>
     /// <param name="selectedPath">The selected atlas or skeleton path.</param>

@@ -126,6 +126,50 @@ public sealed class WorkspaceSessionServiceTests
     }
 
     [Fact]
+    public async Task OpenAsync_WithSelectedAtlasAndSkeleton_UsesExplicitCompanionAsync()
+    {
+        SpineProjectReference heroProject = CreateProjectReference("Hero");
+        TestProjectReferenceResolver resolver = new();
+        resolver.SetSelectionResult("hero.atlas", CreateSuccessfulResolveResult(heroProject));
+
+        WorkspaceSessionService service = CreateService(
+            resolver,
+            new TestSettingsRepository(new ViewerSettings()),
+            new TestRecentFilesService());
+
+        await service.OpenAsync(["hero.atlas", "hero.json"], CancellationToken.None);
+
+        Assert.Equal("hero.atlas", resolver.LastSelectedPath);
+        Assert.Equal("hero.json", resolver.LastCompanionPath);
+        Assert.Equal("Hero", Assert.IsType<SpineProjectSession>(service.State.CurrentSession).Project.DisplayName);
+    }
+
+    [Fact]
+    public async Task OpenAsync_WithTooManySelectedFiles_PreservesCurrentSessionAndReportsGuidanceAsync()
+    {
+        SpineProjectReference heroProject = CreateProjectReference("Hero");
+        TestProjectReferenceResolver resolver = new();
+        resolver.SetSelectionResult("hero.json", CreateSuccessfulResolveResult(heroProject));
+
+        WorkspaceSessionService service = CreateService(
+            resolver,
+            new TestSettingsRepository(new ViewerSettings()),
+            new TestRecentFilesService());
+
+        await service.OpenAsync("hero.json", null, CancellationToken.None);
+        Guid initialSessionId = Assert.IsType<SpineProjectSession>(service.State.CurrentSession).SessionId;
+
+        await service.OpenAsync(["hero.json", "hero.atlas", "hero.png"], CancellationToken.None);
+
+        SpineProjectSession session = Assert.IsType<SpineProjectSession>(service.State.CurrentSession);
+        Assert.Equal(initialSessionId, session.SessionId);
+        Assert.Contains(
+            service.State.Diagnostics,
+            static diagnostic => diagnostic.Code == "project-selection-too-many-files");
+        Assert.Equal("Select one skeleton file and one atlas file.", service.State.StatusText);
+    }
+
+    [Fact]
     public async Task RestoreLastSessionAsync_OpensPersistedProjectAndCloseClearsRestoreTargetAsync()
     {
         SpineProjectReference heroProject = CreateProjectReference("Hero");
@@ -216,6 +260,10 @@ public sealed class WorkspaceSessionServiceTests
         private readonly Dictionary<string, ResolveSpineProjectResult> _selectionResults =
             new(StringComparer.OrdinalIgnoreCase);
 
+        public string? LastCompanionPath { get; private set; }
+
+        public string? LastSelectedPath { get; private set; }
+
         public Task<ResolveSpineProjectResult> ResolveForReopenAsync(
             SpineProjectReference projectReference,
             CancellationToken cancellationToken)
@@ -228,6 +276,8 @@ public sealed class WorkspaceSessionServiceTests
             string? companionPath,
             CancellationToken cancellationToken)
         {
+            LastSelectedPath = selectedPath;
+            LastCompanionPath = companionPath;
             return Task.FromResult(_selectionResults[selectedPath]);
         }
 

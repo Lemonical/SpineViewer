@@ -77,6 +77,62 @@ public sealed class WorkspaceSessionService : IWorkspaceSessionService
 
     /// <inheritdoc />
     public async Task OpenAsync(
+        IReadOnlyList<string> selectedPaths,
+        CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(selectedPaths);
+
+        string[] materializedSelectedPaths = selectedPaths
+            .Where(static path => !string.IsNullOrWhiteSpace(path))
+            .ToArray();
+
+        if (materializedSelectedPaths.Length == 0)
+        {
+            throw new ArgumentException(
+                "At least one selected path is required.",
+                nameof(selectedPaths));
+        }
+
+        if (materializedSelectedPaths.Length > 2)
+        {
+            await _gate.WaitAsync(cancellationToken).ConfigureAwait(false);
+
+            try
+            {
+                await EnsureInitializedCoreAsync(cancellationToken).ConfigureAwait(false);
+
+                FinishLifecycleOperation(
+                    _state.CurrentSession,
+                    [
+                        new ViewerDiagnostic(
+                            "project-selection-too-many-files",
+                            ViewerDiagnosticSeverity.Error,
+                            "Select or drop no more than one skeleton file and one atlas file at a time.",
+                            nameof(WorkspaceSessionService),
+                            $"Selected path count: {materializedSelectedPaths.Length}.",
+                            "Choose one .atlas file and one .json, .skel, or .bytes file, or start with a single file and let the viewer auto-pair it."),
+                    ],
+                    "Select one skeleton file and one atlas file.",
+                    false);
+            }
+            finally
+            {
+                _gate.Release();
+            }
+
+            return;
+        }
+
+        string selectedPath = materializedSelectedPaths[0];
+        string? companionPath = materializedSelectedPaths.Length == 2
+            ? materializedSelectedPaths[1]
+            : null;
+
+        await OpenAsync(selectedPath, companionPath, cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <inheritdoc />
+    public async Task OpenAsync(
         string selectedPath,
         string? companionPath,
         CancellationToken cancellationToken)

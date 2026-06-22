@@ -2,35 +2,389 @@
     x:Class="SpineViewer.Features.Shell.Views.MainWindow"
     xmlns="https://github.com/avaloniaui"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:coreModels="using:SpineViewer.Core.Models"
     xmlns:viewModels="using:SpineViewer.Features.Shell.ViewModels"
-    Width="980"
-    Height="680"
+    xmlns:viewportViews="using:SpineViewer.Features.Viewport.Views"
+    Width="1280"
+    Height="840"
     MinWidth="720"
-    MinHeight="480"
+    MinHeight="560"
+    Background="#09101A"
     x:DataType="viewModels:MainWindowViewModel"
     Title="{Binding Title}">
-    <Grid RowDefinitions="Auto,*,Auto" Margin="28">
-        <StackPanel Spacing="8">
-            <TextBlock FontSize="30" FontWeight="SemiBold" Text="{Binding WelcomeMessage}" />
-            <TextBlock Classes="hint" Text="{Binding RuntimeSummary}" />
-        </StackPanel>
+    <Grid RowDefinitions="Auto,Auto,Auto,*,Auto" RowSpacing="16" Margin="20">
+        <Border
+            Background="#111A26"
+            BorderBrush="#2B394E"
+            BorderThickness="1"
+            CornerRadius="14"
+            Padding="8,6">
+            <Menu Background="Transparent">
+                <MenuItem Header="_File">
+                    <MenuItem Click="OnOpenModelClick" Header="Open Model..." IsEnabled="{Binding CanStartOpenFlow}" />
+                    <MenuItem Command="{Binding OpenSelectedRecentProjectCommand}" Header="Open Selected Recent" />
+                    <Separator />
+                    <MenuItem Command="{Binding ReloadSessionCommand}" Header="Reload Session" />
+                    <MenuItem Command="{Binding CloseSessionCommand}" Header="Close Session" />
+                </MenuItem>
+                <MenuItem Header="_View">
+                    <MenuItem Command="{Binding ToggleWorkspacePaneCommand}" Header="Toggle Workspace Pane" />
+                    <MenuItem Command="{Binding ToggleDetailsPaneCommand}" Header="Toggle Details Pane" />
+                </MenuItem>
+            </Menu>
+        </Border>
 
         <Border
             Grid.Row="1"
-            Margin="0,24,0,24"
-            Padding="24"
-            Background="#141A23"
-            BorderBrush="#3A4457"
+            Background="#111A26"
+            BorderBrush="#2B394E"
             BorderThickness="1"
-            CornerRadius="16">
-            <StackPanel Spacing="12">
-                <TextBlock FontSize="20" FontWeight="SemiBold" Text="Workspace" />
-                <TextBlock TextWrapping="Wrap" Text="{Binding SessionSummary}" />
-                <TextBlock TextWrapping="Wrap" Text="{Binding DiagnosticSummary}" />
-                <TextBlock TextWrapping="Wrap" Text="{Binding RecentFilesSummary}" />
-            </StackPanel>
+            CornerRadius="18"
+            Padding="16">
+            <WrapPanel HorizontalAlignment="Stretch" Orientation="Horizontal">
+                <Button Click="OnOpenModelClick" Content="Open Model..." IsEnabled="{Binding CanStartOpenFlow}" MinWidth="150" />
+                <Button Command="{Binding OpenSelectedRecentProjectCommand}" Content="Open Selected Recent" MinWidth="170" />
+                <Button Command="{Binding ReloadSessionCommand}" Content="Reload Session" Margin="12,0,0,0" MinWidth="140" />
+                <Button Command="{Binding CloseSessionCommand}" Content="Close Session" Margin="12,0,0,0" MinWidth="140" />
+                <Button Command="{Binding ToggleWorkspacePaneCommand}" Content="{Binding WorkspacePaneButtonText}" Margin="12,0,0,0" />
+                <Button Command="{Binding ToggleDetailsPaneCommand}" Content="{Binding DetailsPaneButtonText}" Margin="12,0,0,0" />
+            </WrapPanel>
         </Border>
 
-        <TextBlock Grid.Row="2" HorizontalAlignment="Left" Text="{Binding StatusText}" />
+        <Grid Grid.Row="2" ColumnDefinitions="*,Auto" ColumnSpacing="16">
+            <StackPanel Spacing="4">
+                <TextBlock FontSize="28" FontWeight="SemiBold" Text="{Binding CurrentProjectName}" />
+                <TextBlock Classes="hint" FontSize="14" Text="{Binding CurrentRuntimeSummary}" />
+            </StackPanel>
+
+            <Border
+                Grid.Column="1"
+                Background="#152235"
+                CornerRadius="999"
+                Padding="12,6"
+                VerticalAlignment="Top">
+                <TextBlock Text="{Binding LayoutModeLabel}" />
+            </Border>
+        </Grid>
+
+        <Grid
+            x:Name="ShellContentGrid"
+            Grid.Row="3"
+            ColumnDefinitions="Auto,*,Auto"
+            ColumnSpacing="16"
+            RowDefinitions="*">
+            <Border
+                x:Name="WorkspacePane"
+                Width="300"
+                Background="#111A26"
+                BorderBrush="#2B394E"
+                BorderThickness="1"
+                CornerRadius="18"
+                IsVisible="{Binding IsWorkspacePaneVisible}"
+                Padding="18">
+                <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+                    <StackPanel Spacing="18">
+                        <StackPanel Spacing="6">
+                            <TextBlock FontSize="20" FontWeight="SemiBold" Text="Workspace" />
+                            <TextBlock Classes="hint" Text="{Binding CurrentAssetSummary}" TextWrapping="Wrap" />
+                            <TextBlock Classes="hint" Text="{Binding CurrentVersionSummary}" TextWrapping="Wrap" />
+                        </StackPanel>
+
+                        <Border
+                            Background="#172234"
+                            CornerRadius="14"
+                            Padding="14">
+                            <StackPanel Spacing="6">
+                                <TextBlock FontWeight="SemiBold" Text="{Binding SessionDetailsTitle}" />
+                                <TextBlock TextWrapping="Wrap" Text="{Binding CurrentSkeletonPath}" />
+                                <TextBlock TextWrapping="Wrap" Text="{Binding CurrentAtlasPath}" />
+                                <TextBlock Classes="hint" Text="{Binding CurrentTextureSummary}" />
+                            </StackPanel>
+                        </Border>
+
+                        <StackPanel Spacing="10">
+                            <TextBlock FontWeight="SemiBold" Text="Recent Projects" />
+
+                            <TextBlock
+                                Classes="hint"
+                                IsVisible="{Binding HasNoRecentFiles}"
+                                Text="No recent projects are available yet."
+                                TextWrapping="Wrap" />
+
+                            <ListBox
+                                IsVisible="{Binding HasRecentFiles}"
+                                ItemsSource="{Binding RecentFiles}"
+                                MaxHeight="260"
+                                SelectedItem="{Binding SelectedRecentProject}">
+                                <ListBox.ItemTemplate>
+                                    <DataTemplate x:DataType="coreModels:SpineProjectReference">
+                                        <StackPanel Margin="2" Spacing="2">
+                                            <TextBlock FontWeight="SemiBold" Text="{Binding DisplayName}" />
+                                            <TextBlock
+                                                Classes="hint"
+                                                Text="{Binding SkeletonPath}"
+                                                TextTrimming="CharacterEllipsis" />
+                                            <TextBlock
+                                                Classes="hint"
+                                                Text="{Binding AtlasPath}"
+                                                TextTrimming="CharacterEllipsis" />
+                                        </StackPanel>
+                                    </DataTemplate>
+                                </ListBox.ItemTemplate>
+                            </ListBox>
+
+                            <Button
+                                Command="{Binding OpenSelectedRecentProjectCommand}"
+                                Content="Open Selected Recent" />
+                        </StackPanel>
+                    </StackPanel>
+                </ScrollViewer>
+            </Border>
+
+            <Border
+                x:Name="ViewportPane"
+                Grid.Column="1"
+                Background="#0C121C"
+                BorderBrush="#2B394E"
+                BorderThickness="1"
+                CornerRadius="22"
+                Padding="12">
+                <Grid RowDefinitions="Auto,*" RowSpacing="12">
+                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16">
+                        <StackPanel Spacing="2">
+                            <TextBlock FontSize="18" FontWeight="SemiBold" Text="Viewport" />
+                            <TextBlock Classes="hint" Text="{Binding CurrentPlaybackSummary}" />
+                        </StackPanel>
+
+                        <Border
+                            Grid.Column="1"
+                            Background="#152235"
+                            CornerRadius="999"
+                            Padding="12,6"
+                            VerticalAlignment="Center">
+                            <TextBlock Text="{Binding CurrentViewportSummary}" />
+                        </Border>
+                    </Grid>
+
+                    <Border
+                        Grid.Row="1"
+                        Background="#08111C"
+                        BorderBrush="#1F2D41"
+                        BorderThickness="1"
+                        CornerRadius="16"
+                        Padding="18">
+                        <Grid>
+                            <Grid IsVisible="{Binding HasActiveSession}">
+                                <viewportViews:ViewportView DataContext="{Binding Viewport}" />
+                            </Grid>
+
+                            <ScrollViewer
+                                HorizontalScrollBarVisibility="Disabled"
+                                IsVisible="{Binding ShowLandingState}"
+                                VerticalScrollBarVisibility="Auto">
+                                <StackPanel
+                                    HorizontalAlignment="Center"
+                                    MaxWidth="760"
+                                    Spacing="20"
+                                    VerticalAlignment="Center">
+                                    <StackPanel Spacing="8">
+                                        <TextBlock
+                                            FontSize="32"
+                                            FontWeight="SemiBold"
+                                            Text="{Binding WorkspaceExperienceTitle}"
+                                            TextAlignment="Center"
+                                            TextWrapping="Wrap" />
+                                        <TextBlock
+                                            Classes="hint"
+                                            FontSize="15"
+                                            Text="{Binding WorkspaceExperienceDescription}"
+                                            TextAlignment="Center"
+                                            TextWrapping="Wrap" />
+                                    </StackPanel>
+
+                                    <WrapPanel HorizontalAlignment="Center" Orientation="Horizontal">
+                                        <Button
+                                            Click="OnOpenModelClick"
+                                            Content="Open Model..."
+                                            IsEnabled="{Binding CanStartOpenFlow}"
+                                            MinWidth="150" />
+                                        <Button
+                                            Command="{Binding OpenSelectedRecentProjectCommand}"
+                                            Content="Open Selected Recent"
+                                            IsVisible="{Binding HasRecentFiles}"
+                                            Margin="12,0,0,0"
+                                            MinWidth="170" />
+                                    </WrapPanel>
+
+                                    <TextBlock
+                                        Classes="hint"
+                                        Text="{Binding OpenFormatsSummary}"
+                                        TextAlignment="Center"
+                                        TextWrapping="Wrap" />
+
+                                    <Border
+                                        Background="#132133"
+                                        BorderBrush="#C86B4A"
+                                        BorderThickness="1"
+                                        CornerRadius="16"
+                                        IsVisible="{Binding ShowLoadFailureState}"
+                                        Padding="16">
+                                        <StackPanel Spacing="8">
+                                            <TextBlock FontWeight="SemiBold" Text="{Binding SelectedDiagnosticTitle}" TextWrapping="Wrap" />
+                                            <TextBlock Text="{Binding SelectedDiagnosticMessage}" TextWrapping="Wrap" />
+                                            <TextBlock Classes="hint" Text="{Binding SelectedDiagnosticSource}" TextWrapping="Wrap" />
+                                            <TextBlock
+                                                Classes="hint"
+                                                IsVisible="{Binding HasSelectedDiagnosticSuggestedAction}"
+                                                Text="{Binding SelectedDiagnosticSuggestedAction}"
+                                                TextWrapping="Wrap" />
+                                        </StackPanel>
+                                    </Border>
+
+                                    <WrapPanel HorizontalAlignment="Center" Orientation="Horizontal">
+                                        <Border
+                                            Background="#132133"
+                                            BorderBrush="#28405E"
+                                            BorderThickness="1"
+                                            CornerRadius="16"
+                                            Margin="0,0,16,16"
+                                            Padding="16"
+                                            Width="340">
+                                            <StackPanel Spacing="8">
+                                                <TextBlock FontWeight="SemiBold" Text="Pairing Guidance" />
+                                                <TextBlock Classes="hint" Text="{Binding PairingGuidanceText}" TextWrapping="Wrap" />
+                                            </StackPanel>
+                                        </Border>
+
+                                        <Border
+                                            Background="#132133"
+                                            BorderBrush="#28405E"
+                                            BorderThickness="1"
+                                            CornerRadius="16"
+                                            Margin="0,0,0,16"
+                                            Padding="16"
+                                            Width="340">
+                                            <StackPanel Spacing="8">
+                                                <TextBlock FontWeight="SemiBold" Text="Version Detection" />
+                                                <TextBlock Classes="hint" Text="{Binding VersionDetectionGuidanceText}" TextWrapping="Wrap" />
+                                            </StackPanel>
+                                        </Border>
+                                    </WrapPanel>
+
+                                    <TextBlock
+                                        Classes="hint"
+                                        Text="{Binding DropHintText}"
+                                        TextAlignment="Center"
+                                        TextWrapping="Wrap" />
+                                </StackPanel>
+                            </ScrollViewer>
+
+                            <StackPanel
+                                HorizontalAlignment="Center"
+                                IsVisible="{Binding ShowLoadingState}"
+                                MaxWidth="520"
+                                Spacing="14"
+                                VerticalAlignment="Center">
+                                <TextBlock
+                                    FontSize="28"
+                                    FontWeight="SemiBold"
+                                    Text="{Binding StatusText}"
+                                    TextAlignment="Center"
+                                    TextWrapping="Wrap" />
+                                <TextBlock
+                                    Classes="hint"
+                                    Text="{Binding LoadingStateDescription}"
+                                    TextAlignment="Center"
+                                    TextWrapping="Wrap" />
+                                <ProgressBar IsIndeterminate="True" />
+                            </StackPanel>
+                        </Grid>
+                    </Border>
+                </Grid>
+            </Border>
+
+            <Border
+                x:Name="DetailsPane"
+                Grid.Column="2"
+                Width="320"
+                Background="#111A26"
+                BorderBrush="#2B394E"
+                BorderThickness="1"
+                CornerRadius="18"
+                IsVisible="{Binding IsDetailsPaneVisible}"
+                Padding="18">
+                <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+                    <StackPanel Spacing="18">
+                        <StackPanel Spacing="6">
+                            <TextBlock FontSize="20" FontWeight="SemiBold" Text="Details" />
+                            <TextBlock Classes="hint" Text="{Binding CurrentRuntimeSummary}" TextWrapping="Wrap" />
+                            <TextBlock Classes="hint" Text="{Binding CurrentViewportSummary}" TextWrapping="Wrap" />
+                        </StackPanel>
+
+                        <Border
+                            Background="#172234"
+                            CornerRadius="14"
+                            Padding="14">
+                            <StackPanel Spacing="6">
+                                <TextBlock FontWeight="SemiBold" Text="Diagnostics" />
+                                <TextBlock Classes="hint" Text="{Binding DiagnosticSummaryText}" />
+
+                                <TextBlock
+                                    Classes="hint"
+                                    IsVisible="{Binding HasNoDiagnostics}"
+                                    Text="No diagnostics are available for the current workspace."
+                                    TextWrapping="Wrap" />
+
+                                <ListBox
+                                    IsVisible="{Binding HasDiagnostics}"
+                                    ItemsSource="{Binding Diagnostics}"
+                                    MaxHeight="220"
+                                    SelectedItem="{Binding SelectedDiagnostic}">
+                                    <ListBox.ItemTemplate>
+                                        <DataTemplate x:DataType="coreModels:ViewerDiagnostic">
+                                            <StackPanel Margin="2" Spacing="2">
+                                                <TextBlock FontWeight="SemiBold" Text="{Binding Message}" TextWrapping="Wrap" />
+                                                <TextBlock Classes="hint" Text="{Binding Severity}" />
+                                            </StackPanel>
+                                        </DataTemplate>
+                                    </ListBox.ItemTemplate>
+                                </ListBox>
+                            </StackPanel>
+                        </Border>
+
+                        <Border
+                            Background="#172234"
+                            CornerRadius="14"
+                            Padding="14">
+                            <StackPanel Spacing="6">
+                                <TextBlock FontWeight="SemiBold" Text="{Binding SelectedDiagnosticTitle}" />
+                                <TextBlock TextWrapping="Wrap" Text="{Binding SelectedDiagnosticMessage}" />
+                                <TextBlock Classes="hint" Text="{Binding SelectedDiagnosticSource}" TextWrapping="Wrap" />
+                                <TextBlock
+                                    Classes="hint"
+                                    IsVisible="{Binding HasSelectedDiagnosticSuggestedAction}"
+                                    Text="{Binding SelectedDiagnosticSuggestedAction}"
+                                    TextWrapping="Wrap" />
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+                </ScrollViewer>
+            </Border>
+        </Grid>
+
+        <Border
+            Grid.Row="4"
+            Background="#111A26"
+            BorderBrush="#2B394E"
+            BorderThickness="1"
+            CornerRadius="14"
+            Padding="14,10">
+            <Grid ColumnDefinitions="*,Auto,Auto,Auto" ColumnSpacing="18">
+                <TextBlock Text="{Binding StatusText}" TextWrapping="Wrap" />
+                <TextBlock Grid.Column="1" Text="{Binding ActivitySummary}" />
+                <TextBlock Grid.Column="2" Text="{Binding RecentFilesSummaryText}" />
+                <TextBlock Grid.Column="3" Text="{Binding DiagnosticSummaryText}" />
+            </Grid>
+        </Border>
     </Grid>
 </Window>
