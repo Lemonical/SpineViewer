@@ -33,6 +33,8 @@ public sealed class ViewportSceneComposerTests
         Assert.Equal(420.0, scene.Transform.TranslateX);
         Assert.Equal(290.0, scene.Transform.TranslateY);
         Assert.Equal(17, scene.WorldLines.Count);
+        Assert.NotNull(scene.ContentBounds);
+        Assert.Equal(-130.0, Assert.IsType<ViewportContentBounds>(scene.ContentBounds).MinimumX);
     }
 
     private static IReadOnlyList<IViewportOverlaySource> CreateOverlaySources()

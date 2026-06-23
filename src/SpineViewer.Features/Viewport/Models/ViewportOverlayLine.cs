@@ -16,13 +16,15 @@ public sealed record ViewportOverlayLine
     /// <param name="endY">The world-space end Y coordinate.</param>
     /// <param name="color">The display color for the line.</param>
     /// <param name="thickness">The line thickness in device-independent pixels.</param>
+    /// <param name="includeInContentBounds">Indicates whether the line should contribute to fit-to-view bounds.</param>
     public ViewportOverlayLine(
         double startX,
         double startY,
         double endX,
         double endY,
         Color color,
-        double thickness)
+        double thickness,
+        bool includeInContentBounds = true)
     {
         if (double.IsNaN(startX) || double.IsInfinity(startX))
         {
@@ -55,6 +57,7 @@ public sealed record ViewportOverlayLine
         EndY = endY;
         Color = color;
         Thickness = thickness;
+        IncludeInContentBounds = includeInContentBounds;
     }
 
     /// <summary>
@@ -86,4 +89,9 @@ public sealed record ViewportOverlayLine
     /// Gets the line thickness in device-independent pixels.
     /// </summary>
     public double Thickness { get; init; }
+
+    /// <summary>
+    /// Gets a value indicating whether the line should contribute to fit-to-view bounds.
+    /// </summary>
+    public bool IncludeInContentBounds { get; init; }
 }

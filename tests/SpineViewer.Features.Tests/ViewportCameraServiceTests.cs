@@ -21,15 +21,36 @@ public sealed class ViewportCameraServiceTests
     }
 
     [Fact]
-    public void Zoom_MultipliesCurrentZoomWithoutChangingOffsets()
+    public void FitToView_CentersContentAndChoosesReadableZoom()
     {
         ViewportCameraService service = new();
-        ViewportState state = new(1.5, 12.0, -8.0, true, true, false, false);
+        ViewportState state = new();
 
-        ViewportState updatedState = service.Zoom(state, 2.0);
+        ViewportState updatedState = service.FitToView(
+            state,
+            new ViewportHostLayout(800.0, 600.0),
+            new ViewportContentBounds(-90.0, -130.0, 90.0, 130.0));
 
-        Assert.Equal(3.0, updatedState.Zoom);
-        Assert.Equal(12.0, updatedState.OffsetX);
-        Assert.Equal(-8.0, updatedState.OffsetY);
+        Assert.True(updatedState.Zoom > 1.0);
+        Assert.Equal(0.0, updatedState.OffsetX);
+        Assert.Equal(0.0, updatedState.OffsetY);
+    }
+
+    [Fact]
+    public void ZoomAtPoint_PreservesAnchoredWorldPosition()
+    {
+        ViewportCameraService service = new();
+        ViewportState state = new(1.0, 0.0, 0.0, true, true, false, false);
+
+        ViewportState updatedState = service.ZoomAtPoint(
+            state,
+            new ViewportHostLayout(800.0, 600.0),
+            600.0,
+            300.0,
+            2.0);
+
+        Assert.Equal(2.0, updatedState.Zoom);
+        Assert.Equal(-200.0, updatedState.OffsetX);
+        Assert.Equal(0.0, updatedState.OffsetY);
     }
 }

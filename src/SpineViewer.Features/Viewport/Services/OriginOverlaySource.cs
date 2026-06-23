@@ -32,8 +32,8 @@ public sealed class OriginOverlaySource : IViewportOverlaySource
 
         return
         [
-            new ViewportOverlayLine(-AxisExtent, 0, AxisExtent, 0, HorizontalAxisColor, 1.8),
-            new ViewportOverlayLine(0, -AxisExtent, 0, AxisExtent, VerticalAxisColor, 1.8),
+            new ViewportOverlayLine(-AxisExtent, 0, AxisExtent, 0, HorizontalAxisColor, 1.8, false),
+            new ViewportOverlayLine(0, -AxisExtent, 0, AxisExtent, VerticalAxisColor, 1.8, false),
         ];
     }
 }

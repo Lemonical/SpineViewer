@@ -35,6 +35,7 @@ public sealed record ViewportRenderScene
         FrameVersion = frameVersion;
         HasActiveSession = hasActiveSession;
         SessionName = sessionName ?? string.Empty;
+        ContentBounds = TryCreateContentBounds(WorldLines);
     }
 
     /// <summary>
@@ -64,6 +65,11 @@ public sealed record ViewportRenderScene
     public IReadOnlyList<ViewportOverlayLine> WorldLines { get; init; }
 
     /// <summary>
+    /// Gets the fit-to-view bounds derived from the scene's content lines, if any.
+    /// </summary>
+    public ViewportContentBounds? ContentBounds { get; init; }
+
+    /// <summary>
     /// Gets the monotonically increasing frame version.
     /// </summary>
     public long FrameVersion { get; init; }
@@ -77,4 +83,31 @@ public sealed record ViewportRenderScene
     /// Gets the active session display name, if any.
     /// </summary>
     public string SessionName { get; init; }
+
+    private static ViewportContentBounds? TryCreateContentBounds(
+        IReadOnlyList<ViewportOverlayLine> worldLines)
+    {
+        IEnumerable<ViewportOverlayLine> contentLines = worldLines
+            .Where(static line => line.IncludeInContentBounds);
+
+        if (!contentLines.Any())
+        {
+            return null;
+        }
+
+        double minimumX = double.PositiveInfinity;
+        double minimumY = double.PositiveInfinity;
+        double maximumX = double.NegativeInfinity;
+        double maximumY = double.NegativeInfinity;
+
+        foreach (ViewportOverlayLine line in contentLines)
+        {
+            minimumX = Math.Min(minimumX, Math.Min(line.StartX, line.EndX));
+            minimumY = Math.Min(minimumY, Math.Min(line.StartY, line.EndY));
+            maximumX = Math.Max(maximumX, Math.Max(line.StartX, line.EndX));
+            maximumY = Math.Max(maximumY, Math.Max(line.StartY, line.EndY));
+        }
+
+        return new ViewportContentBounds(minimumX, minimumY, maximumX, maximumY);
+    }
 }

@@ -11,7 +11,6 @@ namespace SpineViewer.Features.Viewport.Services;
 public sealed class ViewportSceneComposer : IViewportSceneComposer
 {
     private static readonly Color EmptyBackgroundColor = Color.FromRgb(0x0D, 0x11, 0x18);
-    private static readonly Color ActiveBackgroundColor = Color.FromRgb(0x10, 0x15, 0x1F);
     private static readonly Color BusyBackgroundColor = Color.FromRgb(0x18, 0x1F, 0x2B);
     private readonly IViewportCameraService _cameraService;
     private readonly IReadOnlyList<IViewportOverlaySource> _overlaySources;
@@ -64,8 +63,18 @@ public sealed class ViewportSceneComposer : IViewportSceneComposer
             return BusyBackgroundColor;
         }
 
-        return workspaceState.CurrentSession is null
-            ? EmptyBackgroundColor
-            : ActiveBackgroundColor;
+        if (workspaceState.CurrentSession is null)
+        {
+            return EmptyBackgroundColor;
+        }
+
+        return workspaceState.CurrentSession.Viewport.BackgroundStyle switch
+        {
+            ViewportBackgroundStyle.Studio => Color.FromRgb(0x10, 0x15, 0x1F),
+            ViewportBackgroundStyle.Slate => Color.FromRgb(0x1B, 0x24, 0x33),
+            ViewportBackgroundStyle.Blueprint => Color.FromRgb(0x0D, 0x24, 0x38),
+            ViewportBackgroundStyle.Paper => Color.FromRgb(0xE7, 0xE0, 0xD3),
+            _ => Color.FromRgb(0x10, 0x15, 0x1F),
+        };
     }
 }

@@ -31,6 +31,25 @@ public interface IViewportCameraService
         double deltaY);
 
     /// <summary>
+    /// Resets the camera transform while preserving overlay and background selections.
+    /// </summary>
+    /// <param name="viewportState">The current viewport state.</param>
+    /// <returns>The reset viewport state.</returns>
+    ViewportState Reset(ViewportState viewportState);
+
+    /// <summary>
+    /// Fits the supplied content bounds into the current render host.
+    /// </summary>
+    /// <param name="viewportState">The current viewport state.</param>
+    /// <param name="hostLayout">The current render-host layout.</param>
+    /// <param name="contentBounds">The content bounds to fit.</param>
+    /// <returns>The updated viewport state.</returns>
+    ViewportState FitToView(
+        ViewportState viewportState,
+        ViewportHostLayout hostLayout,
+        ViewportContentBounds contentBounds);
+
+    /// <summary>
     /// Applies a zoom multiplier to the viewport camera state.
     /// </summary>
     /// <param name="viewportState">The current viewport state.</param>
@@ -38,5 +57,21 @@ public interface IViewportCameraService
     /// <returns>The updated viewport state.</returns>
     ViewportState Zoom(
         ViewportState viewportState,
+        double zoomFactor);
+
+    /// <summary>
+    /// Applies a zoom multiplier while keeping the supplied screen point anchored.
+    /// </summary>
+    /// <param name="viewportState">The current viewport state.</param>
+    /// <param name="hostLayout">The current render-host layout.</param>
+    /// <param name="screenX">The anchored screen-space X coordinate.</param>
+    /// <param name="screenY">The anchored screen-space Y coordinate.</param>
+    /// <param name="zoomFactor">The zoom multiplier to apply.</param>
+    /// <returns>The updated viewport state.</returns>
+    ViewportState ZoomAtPoint(
+        ViewportState viewportState,
+        ViewportHostLayout hostLayout,
+        double screenX,
+        double screenY,
         double zoomFactor);
 }

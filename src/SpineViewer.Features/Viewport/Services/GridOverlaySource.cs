@@ -34,8 +34,8 @@ public sealed class GridOverlaySource : IViewportOverlaySource
 
         for (int position = -GridExtent; position <= GridExtent; position += GridStep)
         {
-            lines.Add(new ViewportOverlayLine(position, -GridExtent, position, GridExtent, GridColor, 1.0));
-            lines.Add(new ViewportOverlayLine(-GridExtent, position, GridExtent, position, GridColor, 1.0));
+            lines.Add(new ViewportOverlayLine(position, -GridExtent, position, GridExtent, GridColor, 1.0, false));
+            lines.Add(new ViewportOverlayLine(-GridExtent, position, GridExtent, position, GridColor, 1.0, false));
         }
 
         return lines;
