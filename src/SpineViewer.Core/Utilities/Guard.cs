@@ -73,6 +73,16 @@ internal static class Guard
         return value;
     }
 
+    public static TimeSpan Positive(TimeSpan value, string parameterName)
+    {
+        if (value <= TimeSpan.Zero)
+        {
+            throw new ArgumentOutOfRangeException(parameterName, "Value must be greater than zero.");
+        }
+
+        return value;
+    }
+
     public static Guid NonEmpty(Guid value, string parameterName)
     {
         if (value == Guid.Empty)

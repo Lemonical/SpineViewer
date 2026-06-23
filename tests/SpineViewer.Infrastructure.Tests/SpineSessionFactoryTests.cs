@@ -29,11 +29,13 @@ public sealed class SpineSessionFactoryTests
         Assert.False(session.Playback.IsLooping);
         Assert.Equal(1.5, session.Playback.Speed);
         Assert.Equal(TimeSpan.Zero, session.Playback.CurrentTime);
+        Assert.Equal(TimeSpan.FromSeconds(5), session.Playback.Duration);
         Assert.Equal(1.0, session.Viewport.Zoom);
         Assert.False(session.Viewport.ShowGrid);
         Assert.False(session.Viewport.ShowOrigin);
         Assert.True(session.Viewport.ShowBones);
         Assert.True(session.Viewport.ShowBounds);
+        Assert.Equal(ViewportBackgroundStyle.Studio, session.Viewport.BackgroundStyle);
     }
 
     [Fact]

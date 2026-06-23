@@ -17,6 +17,7 @@ public sealed class ViewportStateTests
         Assert.True(state.ShowOrigin);
         Assert.False(state.ShowBones);
         Assert.False(state.ShowBounds);
+        Assert.Equal(ViewportBackgroundStyle.Studio, state.BackgroundStyle);
     }
 
     [Fact]

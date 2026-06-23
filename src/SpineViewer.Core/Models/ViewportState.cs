@@ -11,7 +11,7 @@ public sealed record ViewportState
     /// Initializes a new instance of the <see cref="ViewportState"/> class with viewer-friendly defaults.
     /// </summary>
     public ViewportState()
-        : this(1.0, 0.0, 0.0, true, true, false, false)
+        : this(1.0, 0.0, 0.0, true, true, false, false, ViewportBackgroundStyle.Studio)
     {
     }
 
@@ -33,6 +33,38 @@ public sealed record ViewportState
         bool showOrigin,
         bool showBones,
         bool showBounds)
+        : this(
+            zoom,
+            offsetX,
+            offsetY,
+            showGrid,
+            showOrigin,
+            showBones,
+            showBounds,
+            ViewportBackgroundStyle.Studio)
+    {
+    }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="ViewportState"/> class.
+    /// </summary>
+    /// <param name="zoom">The current zoom factor.</param>
+    /// <param name="offsetX">The horizontal camera offset.</param>
+    /// <param name="offsetY">The vertical camera offset.</param>
+    /// <param name="showGrid">Indicates whether the grid overlay is visible.</param>
+    /// <param name="showOrigin">Indicates whether the origin overlay is visible.</param>
+    /// <param name="showBones">Indicates whether the bones overlay is visible.</param>
+    /// <param name="showBounds">Indicates whether the bounds overlay is visible.</param>
+    /// <param name="backgroundStyle">The selected viewport background treatment.</param>
+    public ViewportState(
+        double zoom,
+        double offsetX,
+        double offsetY,
+        bool showGrid,
+        bool showOrigin,
+        bool showBones,
+        bool showBounds,
+        ViewportBackgroundStyle backgroundStyle)
     {
         Zoom = Guard.PositiveFinite(zoom, nameof(zoom));
         OffsetX = Guard.Finite(offsetX, nameof(offsetX));
@@ -41,6 +73,7 @@ public sealed record ViewportState
         ShowOrigin = showOrigin;
         ShowBones = showBones;
         ShowBounds = showBounds;
+        BackgroundStyle = backgroundStyle;
     }
 
     /// <summary>
@@ -77,4 +110,9 @@ public sealed record ViewportState
     /// Gets a value indicating whether the bounds overlay is visible.
     /// </summary>
     public bool ShowBounds { get; init; }
+
+    /// <summary>
+    /// Gets the selected viewport background treatment.
+    /// </summary>
+    public ViewportBackgroundStyle BackgroundStyle { get; init; }
 }

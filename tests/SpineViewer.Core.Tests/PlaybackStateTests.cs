@@ -10,10 +10,12 @@ public sealed class PlaybackStateTests
     {
         PlaybackState state = new();
 
+        Assert.Equal(PlaybackTransportStatus.Stopped, state.Status);
         Assert.False(state.IsPlaying);
         Assert.True(state.IsLooping);
         Assert.Equal(1.0, state.Speed);
         Assert.Equal(TimeSpan.Zero, state.CurrentTime);
+        Assert.Equal(TimeSpan.FromSeconds(5), state.Duration);
         Assert.Empty(state.Tracks);
     }
 
@@ -36,5 +38,18 @@ public sealed class PlaybackStateTests
         tracks.Add(new AnimationTrackState(Guid.NewGuid(), 1, "walk", true, 1.0, true));
 
         Assert.Single(state.Tracks);
+    }
+
+    [Fact]
+    public void Constructor_RejectsCurrentTimeBeyondDuration()
+    {
+        Assert.Throws<ArgumentOutOfRangeException>(
+            () => new PlaybackState(
+                PlaybackTransportStatus.Paused,
+                true,
+                1.0,
+                TimeSpan.FromSeconds(6),
+                TimeSpan.FromSeconds(5),
+                Array.Empty<AnimationTrackState>()));
     }
 }
