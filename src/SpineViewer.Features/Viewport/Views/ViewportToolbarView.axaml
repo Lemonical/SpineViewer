@@ -1,0 +1,35 @@
+<UserControl
+    x:Class="SpineViewer.Features.Viewport.Views.ViewportToolbarView"
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:viewModels="using:SpineViewer.Features.Viewport.ViewModels"
+    x:DataType="viewModels:ViewportViewModel">
+    <Border
+        Background="#101A29"
+        BorderBrush="#263547"
+        BorderThickness="1"
+        CornerRadius="16"
+        Padding="12">
+        <Grid ColumnDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto,*,Auto" ColumnSpacing="10">
+            <Button Command="{Binding FitToViewCommand}" Content="Fit" MinWidth="72" />
+            <Button Command="{Binding ResetCameraCommand}" Content="Reset" Grid.Column="1" MinWidth="72" />
+            <Button Command="{Binding ZoomOutCommand}" Content="-" Grid.Column="2" MinWidth="44" />
+            <Button Command="{Binding ZoomInCommand}" Content="+" Grid.Column="3" MinWidth="44" />
+
+            <CheckBox Grid.Column="4" Content="Grid" IsChecked="{Binding IsGridVisible}" VerticalAlignment="Center" />
+            <CheckBox Grid.Column="5" Content="Origin" IsChecked="{Binding IsOriginVisible}" VerticalAlignment="Center" />
+            <CheckBox Grid.Column="6" Content="Bones" IsChecked="{Binding IsBonesVisible}" VerticalAlignment="Center" />
+            <CheckBox Grid.Column="7" Content="Bounds" HorizontalAlignment="Left" IsChecked="{Binding IsBoundsVisible}" VerticalAlignment="Center" />
+
+            <StackPanel Grid.Column="8" HorizontalAlignment="Right" Spacing="4">
+                <ComboBox
+                    HorizontalAlignment="Right"
+                    ItemsSource="{Binding BackgroundOptions}"
+                    MinWidth="130"
+                    SelectedItem="{Binding SelectedBackgroundStyle}" />
+                <TextBlock HorizontalAlignment="Right" Text="{Binding ZoomSummaryText}" />
+                <TextBlock Classes="hint" HorizontalAlignment="Right" Text="{Binding InteractionHintText}" />
+            </StackPanel>
+        </Grid>
+    </Border>
+</UserControl>

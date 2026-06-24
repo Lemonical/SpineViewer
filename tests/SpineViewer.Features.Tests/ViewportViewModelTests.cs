@@ -3,6 +3,7 @@ using SpineViewer.Core.Abstractions;
 using SpineViewer.Core.Models;
 using SpineViewer.Features.Viewport.Contracts;
 using SpineViewer.Features.Viewport.Models;
+using SpineViewer.Features.Viewport.Services;
 using SpineViewer.Features.Viewport.ViewModels;
 using Xunit;
 
@@ -16,11 +17,10 @@ public sealed class ViewportViewModelTests
         StubWorkspaceSessionService workspaceSessionService = new(CreateWorkspaceState(isPlaying: true));
         StubRenderInvalidationService renderInvalidationService = new();
         StubViewportFrameScheduler frameScheduler = new();
-        ViewportViewModel viewModel = new(
+        ViewportViewModel viewModel = CreateViewModel(
             workspaceSessionService,
             renderInvalidationService,
-            frameScheduler,
-            new StubViewportSceneComposer());
+            frameScheduler);
 
         viewModel.UpdateHostLayout(800.0, 600.0);
         viewModel.Activate();
@@ -38,30 +38,60 @@ public sealed class ViewportViewModelTests
     }
 
     [Fact]
-    public void WorkspaceStateChange_WhenViewportChanges_RequestsViewportInvalidation()
+    public void ToggleGridCommand_UpdatesWorkspaceState()
     {
         StubWorkspaceSessionService workspaceSessionService = new(CreateWorkspaceState(isPlaying: false));
-        SpineProjectSession currentSession = Assert.IsType<SpineProjectSession>(workspaceSessionService.State.CurrentSession);
-        StubRenderInvalidationService renderInvalidationService = new();
-        ViewportViewModel viewModel = new(
+        ViewportViewModel viewModel = CreateViewModel(
+            workspaceSessionService,
+            new StubRenderInvalidationService(),
+            new StubViewportFrameScheduler());
+
+        viewModel.ToggleGridCommand.Execute(null);
+
+        Assert.False(Assert.IsType<SpineProjectSession>(workspaceSessionService.State.CurrentSession).Viewport.ShowGrid);
+    }
+
+    [Fact]
+    public void UpdateHostLayout_WithDefaultViewport_AutoFitsActiveSession()
+    {
+        StubWorkspaceSessionService workspaceSessionService = new(CreateWorkspaceState(isPlaying: false));
+        ViewportViewModel viewModel = CreateViewModel(
+            workspaceSessionService,
+            new StubRenderInvalidationService(),
+            new StubViewportFrameScheduler());
+
+        viewModel.UpdateHostLayout(800.0, 600.0);
+
+        ViewportState viewportState = Assert.IsType<SpineProjectSession>(workspaceSessionService.State.CurrentSession).Viewport;
+        Assert.True(viewportState.Zoom > 1.0);
+        Assert.Equal(0.0, viewportState.OffsetX);
+        Assert.Equal(0.0, viewportState.OffsetY);
+    }
+
+    private static ViewportViewModel CreateViewModel(
+        StubWorkspaceSessionService workspaceSessionService,
+        StubRenderInvalidationService renderInvalidationService,
+        StubViewportFrameScheduler frameScheduler)
+    {
+        return new ViewportViewModel(
             workspaceSessionService,
             renderInvalidationService,
-            new StubViewportFrameScheduler(),
-            new StubViewportSceneComposer());
+            frameScheduler,
+            new ViewportCameraService(),
+            CreateSceneComposer());
+    }
 
-        workspaceSessionService.SetState(
-            new WorkspaceState(
-                currentSession with
-                {
-                    Viewport = new ViewportState(2.0, 40.0, 15.0, true, true, false, false),
-                },
-                Array.Empty<SpineProjectReference>(),
-                Array.Empty<ViewerDiagnostic>(),
-                "Updated viewport.",
-                false));
-
-        Assert.Contains(RenderInvalidationReason.ViewportChanged, renderInvalidationService.RequestedReasons);
-        Assert.Equal(1, viewModel.RenderScene.FrameVersion);
+    private static IViewportSceneComposer CreateSceneComposer()
+    {
+        return new ViewportSceneComposer(
+            new ViewportCameraService(),
+            [
+                new GridOverlaySource(),
+                new SessionPlaceholderOverlaySource(),
+                new BoneOverlaySource(),
+                new BoundsOverlaySource(),
+                new OriginOverlaySource(),
+            ]);
     }
 
     private static WorkspaceState CreateWorkspaceState(bool isPlaying)
@@ -123,6 +153,8 @@ public sealed class ViewportViewModelTests
 
     private sealed class StubViewportFrameScheduler : IViewportFrameScheduler
     {
+        public TimeSpan FrameInterval => TimeSpan.FromSeconds(1.0 / 60.0);
+
         public bool IsRunning { get; private set; }
 
         public void Start()
@@ -133,23 +165,6 @@ public sealed class ViewportViewModelTests
         public void Stop()
         {
             IsRunning = false;
-        }
-    }
-
-    private sealed class StubViewportSceneComposer : IViewportSceneComposer
-    {
-        public ViewportRenderScene Compose(
-            WorkspaceState workspaceState,
-            ViewportHostLayout hostLayout,
-            long frameVersion)
-        {
-            return new ViewportRenderScene(
-                Color.FromRgb(0x10, 0x15, 0x1F),
-                new ViewportRenderTransform(1.0, hostLayout.Width / 2.0, hostLayout.Height / 2.0),
-                Array.Empty<ViewportOverlayLine>(),
-                frameVersion,
-                workspaceState.CurrentSession is not null,
-                workspaceState.CurrentSession?.Project.DisplayName);
         }
     }
 
@@ -199,18 +214,44 @@ public sealed class ViewportViewModelTests
             return Task.CompletedTask;
         }
 
-        public void SetState(WorkspaceState state)
-        {
-            State = state;
-            StateChanged?.Invoke(this, EventArgs.Empty);
-        }
-
         public void UpdatePlaybackState(PlaybackState playbackState)
         {
+            if (State.CurrentSession is null)
+            {
+                return;
+            }
+
+            SetState(
+                State with
+                {
+                    CurrentSession = State.CurrentSession with
+                    {
+                        Playback = playbackState,
+                    },
+                });
         }
 
         public void UpdateViewportState(ViewportState viewportState)
         {
+            if (State.CurrentSession is null)
+            {
+                return;
+            }
+
+            SetState(
+                State with
+                {
+                    CurrentSession = State.CurrentSession with
+                    {
+                        Viewport = viewportState,
+                    },
+                });
+        }
+
+        private void SetState(WorkspaceState state)
+        {
+            State = state;
+            StateChanged?.Invoke(this, EventArgs.Empty);
         }
     }
 }
