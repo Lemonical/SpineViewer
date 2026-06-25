@@ -30,6 +30,9 @@ public sealed class ViewportFrameScheduler : IViewportFrameScheduler
     }
 
     /// <inheritdoc />
+    public TimeSpan FrameInterval => DefaultFrameInterval;
+
+    /// <inheritdoc />
     public bool IsRunning => _timer.IsEnabled;
 
     /// <inheritdoc />

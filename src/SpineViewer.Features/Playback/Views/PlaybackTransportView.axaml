@@ -1,0 +1,50 @@
+<UserControl
+    x:Class="SpineViewer.Features.Playback.Views.PlaybackTransportView"
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:playbackModels="using:SpineViewer.Features.Playback.Models"
+    xmlns:viewModels="using:SpineViewer.Features.Playback.ViewModels"
+    x:DataType="viewModels:PlaybackTransportViewModel">
+    <Border
+        Background="#101A29"
+        BorderBrush="#263547"
+        BorderThickness="1"
+        CornerRadius="16"
+        Padding="12">
+        <Grid ColumnDefinitions="Auto,Auto,Auto,Auto,Auto,*,Auto,Auto" ColumnSpacing="10">
+            <Button Command="{Binding PlayCommand}" Content="Play" MinWidth="72" />
+            <Button Command="{Binding PauseCommand}" Content="Pause" Grid.Column="1" MinWidth="72" />
+            <Button Command="{Binding StopCommand}" Content="Stop" Grid.Column="2" MinWidth="72" />
+            <Button Command="{Binding RestartCommand}" Content="Restart" Grid.Column="3" MinWidth="84" />
+            <Button Command="{Binding FrameStepCommand}" Content="Step" Grid.Column="4" MinWidth="72" />
+
+            <Slider
+                Grid.Column="5"
+                IsEnabled="{Binding HasActiveSession}"
+                Maximum="{Binding TimelineMaximumSeconds}"
+                Minimum="0"
+                Value="{Binding TimelinePositionSeconds}" />
+
+            <StackPanel Grid.Column="6" HorizontalAlignment="Right" Spacing="4">
+                <TextBlock HorizontalAlignment="Right" Text="{Binding TimeSummaryText}" />
+                <TextBlock Classes="hint" HorizontalAlignment="Right" Text="{Binding StatusText}" />
+                <TextBlock Classes="hint" HorizontalAlignment="Right" Text="{Binding ShortcutHintText}" />
+            </StackPanel>
+
+            <StackPanel Grid.Column="7" HorizontalAlignment="Right" Spacing="6">
+                <CheckBox Content="Loop" HorizontalAlignment="Right" IsChecked="{Binding IsLooping}" />
+                <ComboBox
+                    HorizontalAlignment="Right"
+                    ItemsSource="{Binding SpeedOptions}"
+                    MinWidth="110"
+                    SelectedItem="{Binding SelectedSpeedOption}">
+                    <ComboBox.ItemTemplate>
+                        <DataTemplate x:DataType="playbackModels:PlaybackSpeedOption">
+                            <TextBlock Text="{Binding DisplayName}" />
+                        </DataTemplate>
+                    </ComboBox.ItemTemplate>
+                </ComboBox>
+            </StackPanel>
+        </Grid>
+    </Border>
+</UserControl>

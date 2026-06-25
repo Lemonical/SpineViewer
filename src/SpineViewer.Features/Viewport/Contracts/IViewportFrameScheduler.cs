@@ -6,6 +6,11 @@ namespace SpineViewer.Features.Viewport.Contracts;
 public interface IViewportFrameScheduler
 {
     /// <summary>
+    /// Gets the fixed frame interval used while the scheduler is running.
+    /// </summary>
+    TimeSpan FrameInterval { get; }
+
+    /// <summary>
     /// Gets a value indicating whether recurring frame scheduling is currently active.
     /// </summary>
     bool IsRunning { get; }
