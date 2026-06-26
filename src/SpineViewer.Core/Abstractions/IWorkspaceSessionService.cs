@@ -81,4 +81,10 @@ public interface IWorkspaceSessionService
     /// </summary>
     /// <param name="viewportState">The viewport state to store.</param>
     void UpdateViewportState(ViewportState viewportState);
+
+    /// <summary>
+    /// Updates the selected skin for the current session.
+    /// </summary>
+    /// <param name="skinName">The selected skin name, or <see langword="null" /> to clear the selection.</param>
+    void UpdateSelectedSkin(string? skinName);
 }

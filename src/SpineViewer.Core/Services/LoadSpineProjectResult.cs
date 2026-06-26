@@ -24,12 +24,46 @@ public sealed record LoadSpineProjectResult
         SpineRuntimeDescriptor selectedRuntime,
         SpineVersionMatch versionMatch,
         IEnumerable<ViewerDiagnostic> diagnostics)
+        : this(
+            isSuccessful,
+            projectReference,
+            assetFileSet,
+            selectedRuntime,
+            versionMatch,
+            SpineProjectInspection.Empty,
+            Array.Empty<UnsupportedSpineFeature>(),
+            diagnostics)
+    {
+    }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="LoadSpineProjectResult"/> class.
+    /// </summary>
+    /// <param name="isSuccessful">Indicates whether the load completed successfully.</param>
+    /// <param name="projectReference">The user-facing project reference.</param>
+    /// <param name="assetFileSet">The resolved files used by the load.</param>
+    /// <param name="selectedRuntime">The runtime used by the load attempt.</param>
+    /// <param name="versionMatch">The version-detection result associated with the load.</param>
+    /// <param name="inspection">The structured asset inspection snapshot.</param>
+    /// <param name="unsupportedFeatures">The unsupported features reported for the load.</param>
+    /// <param name="diagnostics">The structured diagnostics produced by the load.</param>
+    public LoadSpineProjectResult(
+        bool isSuccessful,
+        SpineProjectReference projectReference,
+        SpineAssetFileSet assetFileSet,
+        SpineRuntimeDescriptor selectedRuntime,
+        SpineVersionMatch versionMatch,
+        SpineProjectInspection inspection,
+        IEnumerable<UnsupportedSpineFeature> unsupportedFeatures,
+        IEnumerable<ViewerDiagnostic> diagnostics)
     {
         IsSuccessful = isSuccessful;
         ProjectReference = Guard.NotNull(projectReference, nameof(projectReference));
         AssetFileSet = Guard.NotNull(assetFileSet, nameof(assetFileSet));
         SelectedRuntime = Guard.NotNull(selectedRuntime, nameof(selectedRuntime));
         VersionMatch = Guard.NotNull(versionMatch, nameof(versionMatch));
+        Inspection = Guard.NotNull(inspection, nameof(inspection));
+        UnsupportedFeatures = Guard.MaterializeReadOnlyList(unsupportedFeatures, nameof(unsupportedFeatures));
         Diagnostics = Guard.MaterializeReadOnlyList(diagnostics, nameof(diagnostics));
     }
 
@@ -57,6 +91,16 @@ public sealed record LoadSpineProjectResult
     /// Gets the version-detection result associated with the load.
     /// </summary>
     public SpineVersionMatch VersionMatch { get; init; }
+
+    /// <summary>
+    /// Gets the structured asset inspection snapshot.
+    /// </summary>
+    public SpineProjectInspection Inspection { get; init; }
+
+    /// <summary>
+    /// Gets the unsupported features reported for the load.
+    /// </summary>
+    public IReadOnlyList<UnsupportedSpineFeature> UnsupportedFeatures { get; init; }
 
     /// <summary>
     /// Gets the structured diagnostics produced by the load.

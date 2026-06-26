@@ -9,6 +9,7 @@ namespace SpineViewer.Infrastructure.Spine.Loading;
 /// </summary>
 public sealed class SpineProjectLoader : ISpineProjectLoader
 {
+    private readonly ISpineProjectInspector _projectInspector;
     private readonly IAppLogger<SpineProjectLoader> _logger;
     private readonly ISpineRuntimeCatalog _runtimeCatalog;
 
@@ -16,12 +17,15 @@ public sealed class SpineProjectLoader : ISpineProjectLoader
     /// Initializes a new instance of the <see cref="SpineProjectLoader"/> class.
     /// </summary>
     /// <param name="runtimeCatalog">The runtime catalog used for adapter lookup.</param>
+    /// <param name="projectInspector">The structured inspector used after a successful load.</param>
     /// <param name="logger">The logger used for unexpected load failures.</param>
     public SpineProjectLoader(
         ISpineRuntimeCatalog runtimeCatalog,
+        ISpineProjectInspector projectInspector,
         IAppLogger<SpineProjectLoader> logger)
     {
         _runtimeCatalog = runtimeCatalog ?? throw new ArgumentNullException(nameof(runtimeCatalog));
+        _projectInspector = projectInspector ?? throw new ArgumentNullException(nameof(projectInspector));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
@@ -57,10 +61,15 @@ public sealed class SpineProjectLoader : ISpineProjectLoader
                 .LoadAsync(adapterRequest, cancellationToken)
                 .ConfigureAwait(false);
 
+            SpineProjectInspection inspection = runtimeResult.IsSuccessful
+                ? await _projectInspector.InspectAsync(request.AssetFileSet, cancellationToken).ConfigureAwait(false)
+                : SpineProjectInspection.Empty;
+
             List<ViewerDiagnostic> diagnostics =
             [
                 .. request.VersionMatch.Diagnostics,
                 .. runtimeResult.Diagnostics,
+                .. inspection.Diagnostics,
             ];
 
             request.Progress?.Report(
@@ -77,6 +86,8 @@ public sealed class SpineProjectLoader : ISpineProjectLoader
                 request.AssetFileSet,
                 runtimeResult.Runtime,
                 request.VersionMatch,
+                inspection,
+                runtimeResult.UnsupportedFeatures,
                 diagnostics);
         }
         catch (OperationCanceledException)

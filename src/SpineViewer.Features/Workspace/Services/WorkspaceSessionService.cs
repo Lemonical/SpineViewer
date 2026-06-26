@@ -14,8 +14,8 @@ public sealed class WorkspaceSessionService : IWorkspaceSessionService
     private readonly ISpineProjectReferenceResolver _projectReferenceResolver;
     private readonly IRecentFilesService _recentFilesService;
     private readonly IRuntimeSelectionService _runtimeSelectionService;
-    private readonly ISettingsRepository _settingsRepository;
     private readonly ISpineSessionFactory _sessionFactory;
+    private readonly IViewerSettingsService _viewerSettingsService;
     private readonly IVersionDetectionService _versionDetectionService;
     private WorkspaceState _state = new(
         null,
@@ -23,7 +23,6 @@ public sealed class WorkspaceSessionService : IWorkspaceSessionService
         Array.Empty<ViewerDiagnostic>(),
         "Ready.",
         false);
-    private ViewerSettings _viewerSettings = new();
     private bool _isInitialized;
 
     /// <summary>
@@ -35,7 +34,7 @@ public sealed class WorkspaceSessionService : IWorkspaceSessionService
     /// <param name="projectLoader">The loader used to load resolved projects.</param>
     /// <param name="sessionFactory">The factory used to create durable workspace sessions.</param>
     /// <param name="recentFilesService">The recent-files service for persisted history.</param>
-    /// <param name="settingsRepository">The settings repository for restore and transient-state defaults.</param>
+    /// <param name="viewerSettingsService">The shared viewer settings service for restore and transient-state defaults.</param>
     public WorkspaceSessionService(
         ISpineProjectReferenceResolver projectReferenceResolver,
         IVersionDetectionService versionDetectionService,
@@ -43,7 +42,7 @@ public sealed class WorkspaceSessionService : IWorkspaceSessionService
         ISpineProjectLoader projectLoader,
         ISpineSessionFactory sessionFactory,
         IRecentFilesService recentFilesService,
-        ISettingsRepository settingsRepository)
+        IViewerSettingsService viewerSettingsService)
     {
         _projectReferenceResolver = projectReferenceResolver ?? throw new ArgumentNullException(nameof(projectReferenceResolver));
         _versionDetectionService = versionDetectionService ?? throw new ArgumentNullException(nameof(versionDetectionService));
@@ -51,7 +50,7 @@ public sealed class WorkspaceSessionService : IWorkspaceSessionService
         _projectLoader = projectLoader ?? throw new ArgumentNullException(nameof(projectLoader));
         _sessionFactory = sessionFactory ?? throw new ArgumentNullException(nameof(sessionFactory));
         _recentFilesService = recentFilesService ?? throw new ArgumentNullException(nameof(recentFilesService));
-        _settingsRepository = settingsRepository ?? throw new ArgumentNullException(nameof(settingsRepository));
+        _viewerSettingsService = viewerSettingsService ?? throw new ArgumentNullException(nameof(viewerSettingsService));
     }
 
     /// <inheritdoc />
@@ -288,15 +287,16 @@ public sealed class WorkspaceSessionService : IWorkspaceSessionService
         {
             await EnsureInitializedCoreAsync(cancellationToken).ConfigureAwait(false);
 
-            if (!_viewerSettings.RestoreLastSessionOnStartup || _viewerSettings.LastProjectReference is null)
+            ViewerSettings viewerSettings = _viewerSettingsService.CurrentSettings;
+            if (!viewerSettings.RestoreLastSessionOnStartup || viewerSettings.LastProjectReference is null)
             {
                 return;
             }
 
-            StartLifecycleOperation($"Restoring {_viewerSettings.LastProjectReference.DisplayName}.");
+            StartLifecycleOperation($"Restoring {viewerSettings.LastProjectReference.DisplayName}.");
 
             ResolveSpineProjectResult resolveResult = await _projectReferenceResolver
-                .ResolveForReopenAsync(_viewerSettings.LastProjectReference, cancellationToken)
+                .ResolveForReopenAsync(viewerSettings.LastProjectReference, cancellationToken)
                 .ConfigureAwait(false);
 
             await CompleteOpenFromResolveAsync(
@@ -355,6 +355,28 @@ public sealed class WorkspaceSessionService : IWorkspaceSessionService
         SpineProjectSession updatedSession = _state.CurrentSession with
         {
             Viewport = viewportState,
+        };
+
+        FinishLifecycleOperation(
+            updatedSession,
+            _state.Diagnostics,
+            _state.StatusText,
+            _state.IsBusy);
+    }
+
+    /// <inheritdoc />
+    public void UpdateSelectedSkin(string? skinName)
+    {
+        if (_state.CurrentSession is null)
+        {
+            return;
+        }
+
+        SpineProjectSession updatedSession = _state.CurrentSession with
+        {
+            SelectedSkinName = string.IsNullOrWhiteSpace(skinName)
+                ? null
+                : skinName,
         };
 
         FinishLifecycleOperation(
@@ -458,7 +480,7 @@ public sealed class WorkspaceSessionService : IWorkspaceSessionService
             return;
         }
 
-        SpineProjectSession session = _sessionFactory.Create(mergedLoadResult, _viewerSettings);
+        SpineProjectSession session = _sessionFactory.Create(mergedLoadResult, _viewerSettingsService.CurrentSettings);
 
         await _recentFilesService.AddAsync(session.Project, cancellationToken).ConfigureAwait(false);
         await PersistLastProjectReferenceCoreAsync(session.Project, cancellationToken).ConfigureAwait(false);
@@ -478,7 +500,7 @@ public sealed class WorkspaceSessionService : IWorkspaceSessionService
             return;
         }
 
-        _viewerSettings = await _settingsRepository.LoadAsync(cancellationToken).ConfigureAwait(false);
+        await _viewerSettingsService.InitializeAsync(cancellationToken).ConfigureAwait(false);
         await RefreshRecentFilesCoreAsync(cancellationToken).ConfigureAwait(false);
 
         if (!_state.HasSession)
@@ -513,12 +535,14 @@ public sealed class WorkspaceSessionService : IWorkspaceSessionService
         SpineProjectReference? projectReference,
         CancellationToken cancellationToken)
     {
-        _viewerSettings = _viewerSettings with
-        {
-            LastProjectReference = projectReference,
-        };
-
-        await _settingsRepository.SaveAsync(_viewerSettings, cancellationToken).ConfigureAwait(false);
+        await _viewerSettingsService
+            .SaveAsync(
+                _viewerSettingsService.CurrentSettings with
+                {
+                    LastProjectReference = projectReference,
+                },
+                cancellationToken)
+            .ConfigureAwait(false);
     }
 
     private async Task RefreshRecentFilesCoreAsync(CancellationToken cancellationToken)

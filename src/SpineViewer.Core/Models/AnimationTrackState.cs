@@ -23,12 +23,42 @@ public sealed record AnimationTrackState
         bool isLooping,
         double timeScale,
         bool isEnabled)
+        : this(
+            trackId,
+            trackIndex,
+            animationName,
+            isLooping,
+            timeScale,
+            TimeSpan.Zero,
+            isEnabled)
+    {
+    }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="AnimationTrackState"/> class.
+    /// </summary>
+    /// <param name="trackId">The stable identity of the track.</param>
+    /// <param name="trackIndex">The zero-based runtime track index.</param>
+    /// <param name="animationName">The animation assigned to the track.</param>
+    /// <param name="isLooping">Indicates whether the track loops.</param>
+    /// <param name="timeScale">The per-track playback speed multiplier.</param>
+    /// <param name="mixDuration">The mix duration applied when blending into this track.</param>
+    /// <param name="isEnabled">Indicates whether the track participates in playback.</param>
+    public AnimationTrackState(
+        Guid trackId,
+        int trackIndex,
+        string animationName,
+        bool isLooping,
+        double timeScale,
+        TimeSpan mixDuration,
+        bool isEnabled)
     {
         TrackId = Guard.NonEmpty(trackId, nameof(trackId));
         TrackIndex = Guard.NonNegative(trackIndex, nameof(trackIndex));
         AnimationName = Guard.NotNullOrWhiteSpace(animationName, nameof(animationName));
         IsLooping = isLooping;
         TimeScale = Guard.PositiveFinite(timeScale, nameof(timeScale));
+        MixDuration = Guard.NonNegative(mixDuration, nameof(mixDuration));
         IsEnabled = isEnabled;
     }
 
@@ -56,6 +86,11 @@ public sealed record AnimationTrackState
     /// Gets the per-track playback speed multiplier.
     /// </summary>
     public double TimeScale { get; init; }
+
+    /// <summary>
+    /// Gets the mix duration applied when blending into this track.
+    /// </summary>
+    public TimeSpan MixDuration { get; init; }
 
     /// <summary>
     /// Gets a value indicating whether the track participates in playback.

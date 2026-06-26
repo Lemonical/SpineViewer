@@ -13,6 +13,15 @@ public sealed record ViewerSettings
     public ViewerSettings()
         : this(ViewerTheme.FollowSystem, true, true, false, false, true, 1.0, 10, true, null)
     {
+        ShowMeshWireframeByDefault = false;
+        ShowSlotOutlinesByDefault = false;
+        ShowLabelsByDefault = false;
+        ShowMissingResourceIndicatorsByDefault = true;
+        ShowUnsupportedFeatureIndicatorsByDefault = true;
+        DefaultTrackMixDuration = TimeSpan.FromSeconds(0.15);
+        DefaultTrackTimeScale = 1.0;
+        DefaultViewportBackgroundStyle = ViewportBackgroundStyle.Studio;
+        LastWindowState = null;
     }
 
     /// <summary>
@@ -84,6 +93,15 @@ public sealed record ViewerSettings
         RecentFilesLimit = Guard.Positive(recentFilesLimit, nameof(recentFilesLimit));
         RestoreLastSessionOnStartup = restoreLastSessionOnStartup;
         LastProjectReference = lastProjectReference;
+        ShowMeshWireframeByDefault = false;
+        ShowSlotOutlinesByDefault = false;
+        ShowLabelsByDefault = false;
+        ShowMissingResourceIndicatorsByDefault = true;
+        ShowUnsupportedFeatureIndicatorsByDefault = true;
+        DefaultTrackMixDuration = TimeSpan.FromSeconds(0.15);
+        DefaultTrackTimeScale = 1.0;
+        DefaultViewportBackgroundStyle = ViewportBackgroundStyle.Studio;
+        LastWindowState = null;
     }
 
     /// <summary>
@@ -112,6 +130,31 @@ public sealed record ViewerSettings
     public bool ShowBoundsByDefault { get; init; }
 
     /// <summary>
+    /// Gets a value indicating whether the mesh or wireframe overlay starts enabled.
+    /// </summary>
+    public bool ShowMeshWireframeByDefault { get; init; }
+
+    /// <summary>
+    /// Gets a value indicating whether the slot-outline overlay starts enabled.
+    /// </summary>
+    public bool ShowSlotOutlinesByDefault { get; init; }
+
+    /// <summary>
+    /// Gets a value indicating whether the labels overlay starts enabled.
+    /// </summary>
+    public bool ShowLabelsByDefault { get; init; }
+
+    /// <summary>
+    /// Gets a value indicating whether missing-resource indicators start enabled.
+    /// </summary>
+    public bool ShowMissingResourceIndicatorsByDefault { get; init; }
+
+    /// <summary>
+    /// Gets a value indicating whether unsupported-feature indicators start enabled.
+    /// </summary>
+    public bool ShowUnsupportedFeatureIndicatorsByDefault { get; init; }
+
+    /// <summary>
     /// Gets a value indicating whether playback loops by default.
     /// </summary>
     public bool LoopPlaybackByDefault { get; init; }
@@ -120,6 +163,21 @@ public sealed record ViewerSettings
     /// Gets the default playback speed multiplier.
     /// </summary>
     public double DefaultPlaybackSpeed { get; init; }
+
+    /// <summary>
+    /// Gets the default track mix duration.
+    /// </summary>
+    public TimeSpan DefaultTrackMixDuration { get; init; }
+
+    /// <summary>
+    /// Gets the default per-track playback speed multiplier.
+    /// </summary>
+    public double DefaultTrackTimeScale { get; init; }
+
+    /// <summary>
+    /// Gets the default viewport background style.
+    /// </summary>
+    public ViewportBackgroundStyle DefaultViewportBackgroundStyle { get; init; }
 
     /// <summary>
     /// Gets the maximum number of recent-file entries to persist.
@@ -135,4 +193,9 @@ public sealed record ViewerSettings
     /// Gets the last successfully opened project, if one should be restored later.
     /// </summary>
     public SpineProjectReference? LastProjectReference { get; init; }
+
+    /// <summary>
+    /// Gets the last persisted window state, if one is available.
+    /// </summary>
+    public ViewerWindowState? LastWindowState { get; init; }
 }

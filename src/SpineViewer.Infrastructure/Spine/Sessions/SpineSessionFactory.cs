@@ -22,12 +22,16 @@ public sealed class SpineSessionFactory : ISpineSessionFactory
                 nameof(loadResult));
         }
 
+        AnimationTrackState[] initialTracks = CreateInitialTracks(loadResult.Inspection, viewerSettings);
+        TimeSpan initialDuration = DetermineInitialDuration(loadResult.Inspection, initialTracks);
+
         PlaybackState playbackState = new(
-            false,
+            PlaybackTransportStatus.Stopped,
             viewerSettings.LoopPlaybackByDefault,
             viewerSettings.DefaultPlaybackSpeed,
             TimeSpan.Zero,
-            Array.Empty<AnimationTrackState>());
+            initialDuration,
+            initialTracks);
 
         ViewportState viewportState = new(
             1.0,
@@ -36,7 +40,17 @@ public sealed class SpineSessionFactory : ISpineSessionFactory
             viewerSettings.ShowGridByDefault,
             viewerSettings.ShowOriginByDefault,
             viewerSettings.ShowBonesByDefault,
-            viewerSettings.ShowBoundsByDefault);
+            viewerSettings.ShowBoundsByDefault,
+            viewerSettings.ShowMeshWireframeByDefault,
+            viewerSettings.ShowSlotOutlinesByDefault,
+            viewerSettings.ShowLabelsByDefault,
+            viewerSettings.ShowMissingResourceIndicatorsByDefault,
+            viewerSettings.ShowUnsupportedFeatureIndicatorsByDefault,
+            viewerSettings.DefaultViewportBackgroundStyle);
+
+        string? selectedSkinName = loadResult.Inspection.Skins
+            .FirstOrDefault(static skin => skin.IsDefault)?
+            .Name ?? loadResult.Inspection.Skins.FirstOrDefault()?.Name;
 
         return new SpineProjectSession(
             Guid.NewGuid(),
@@ -46,6 +60,51 @@ public sealed class SpineSessionFactory : ISpineSessionFactory
             loadResult.VersionMatch,
             playbackState,
             viewportState,
+            loadResult.Inspection,
+            loadResult.UnsupportedFeatures,
+            selectedSkinName,
             loadResult.Diagnostics.Distinct().ToArray());
+    }
+
+    private static AnimationTrackState[] CreateInitialTracks(
+        SpineProjectInspection inspection,
+        ViewerSettings viewerSettings)
+    {
+        SpineAnimationInfo? firstAnimation = inspection.Animations.FirstOrDefault();
+        if (firstAnimation is null)
+        {
+            return Array.Empty<AnimationTrackState>();
+        }
+
+        return
+        [
+            new AnimationTrackState(
+                Guid.NewGuid(),
+                0,
+                firstAnimation.Name,
+                viewerSettings.LoopPlaybackByDefault,
+                viewerSettings.DefaultTrackTimeScale,
+                viewerSettings.DefaultTrackMixDuration,
+                true),
+        ];
+    }
+
+    private static TimeSpan DetermineInitialDuration(
+        SpineProjectInspection inspection,
+        IReadOnlyList<AnimationTrackState> tracks)
+    {
+        if (tracks.Count == 0)
+        {
+            return TimeSpan.FromSeconds(5);
+        }
+
+        TimeSpan duration = tracks
+            .Select(track => inspection.Animations.FirstOrDefault(animation => animation.Name == track.AnimationName)?.Duration ?? TimeSpan.Zero)
+            .DefaultIfEmpty(TimeSpan.Zero)
+            .Max();
+
+        return duration > TimeSpan.Zero
+            ? duration
+            : TimeSpan.FromSeconds(5);
     }
 }

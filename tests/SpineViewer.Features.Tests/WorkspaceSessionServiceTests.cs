@@ -203,6 +203,25 @@ public sealed class WorkspaceSessionServiceTests
         Assert.Null(settingsRepository.CurrentSettings.LastProjectReference);
     }
 
+    [Fact]
+    public async Task UpdateSelectedSkin_StoresSelectionOnCurrentSessionAsync()
+    {
+        SpineProjectReference heroProject = CreateProjectReference("Hero");
+        TestProjectReferenceResolver resolver = new();
+        resolver.SetSelectionResult("hero.json", CreateSuccessfulResolveResult(heroProject));
+        WorkspaceSessionService service = CreateService(
+            resolver,
+            new TestSettingsRepository(new ViewerSettings()),
+            new TestRecentFilesService());
+
+        await service.OpenAsync("hero.json", null, CancellationToken.None);
+
+        service.UpdateSelectedSkin("Winter");
+
+        SpineProjectSession session = Assert.IsType<SpineProjectSession>(service.State.CurrentSession);
+        Assert.Equal("Winter", session.SelectedSkinName);
+    }
+
     private static ResolveSpineProjectResult CreateSuccessfulResolveResult(SpineProjectReference projectReference)
     {
         return new ResolveSpineProjectResult(
@@ -233,7 +252,7 @@ public sealed class WorkspaceSessionServiceTests
             new TestProjectLoader(),
             new TestSpineSessionFactory(),
             recentFilesService,
-            settingsRepository);
+            new ViewerSettingsService(settingsRepository));
     }
 
     private sealed class TestProjectLoader : ISpineProjectLoader

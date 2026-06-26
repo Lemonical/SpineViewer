@@ -12,8 +12,19 @@ public sealed class SpineProjectLoaderTests
     public async Task LoadAsync_UsesAdapterAndReportsCompletionProgressAsync()
     {
         RecordingRuntimeAdapter adapter = new(true, Array.Empty<ViewerDiagnostic>());
+        SpineProjectInspection inspection = new(
+            new SpineExportMetadata("4.1.00", "./images", "./audio", 512, 256, 30, 0, 0, 0, 1, 0, 0),
+            [new SpineAnimationInfo("idle", TimeSpan.FromSeconds(1.5), 2, 4)],
+            Array.Empty<SpineSkinInfo>(),
+            Array.Empty<SpineBoneInfo>(),
+            Array.Empty<SpineSlotInfo>(),
+            Array.Empty<SpineAttachmentInfo>(),
+            Array.Empty<SpineAtlasPageInfo>(),
+            Array.Empty<SpineAtlasRegionInfo>(),
+            Array.Empty<ViewerDiagnostic>());
         SpineProjectLoader loader = new(
             new SpineRuntimeCatalog([adapter]),
+            new TestProjectInspector(inspection),
             new TestAppLogger<SpineProjectLoader>());
 
         List<SpineLoadProgress> progressUpdates = [];
@@ -27,6 +38,7 @@ public sealed class SpineProjectLoaderTests
         LoadSpineProjectResult result = await loader.LoadAsync(request, CancellationToken.None);
 
         Assert.True(result.IsSuccessful);
+        Assert.Equal("idle", Assert.Single(result.Inspection.Animations).Name);
         Assert.Equal(
             [SpineLoadStage.LoadingProject, SpineLoadStage.Completed],
             progressUpdates.Select(static update => update.Stage).ToArray());
@@ -38,6 +50,7 @@ public sealed class SpineProjectLoaderTests
         ThrowingRuntimeAdapter adapter = new();
         SpineProjectLoader loader = new(
             new SpineRuntimeCatalog([adapter]),
+            new TestProjectInspector(SpineProjectInspection.Empty),
             new TestAppLogger<SpineProjectLoader>());
 
         LoadSpineProjectRequest request = new(
@@ -130,6 +143,23 @@ public sealed class SpineProjectLoaderTests
             CancellationToken cancellationToken)
         {
             throw new InvalidOperationException("boom");
+        }
+    }
+
+    private sealed class TestProjectInspector : ISpineProjectInspector
+    {
+        private readonly SpineProjectInspection _inspection;
+
+        public TestProjectInspector(SpineProjectInspection inspection)
+        {
+            _inspection = inspection;
+        }
+
+        public Task<SpineProjectInspection> InspectAsync(
+            SpineAssetFileSet assetFileSet,
+            CancellationToken cancellationToken)
+        {
+            return Task.FromResult(_inspection);
         }
     }
 
