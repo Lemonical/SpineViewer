@@ -2,6 +2,9 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using SpineViewer.Core.Abstractions;
 using SpineViewer.Core.Services;
+using SpineViewer.Features.Playback.Contracts;
+using SpineViewer.Features.Playback.Services;
+using SpineViewer.Features.Playback.ViewModels;
 using SpineViewer.Features.Shell.ViewModels;
 using SpineViewer.Features.Viewport.Contracts;
 using SpineViewer.Features.Viewport.Services;
@@ -68,8 +71,10 @@ internal static class ServiceCollectionExtensions
         services.AddSingleton<IViewportOverlaySource, BoundsOverlaySource>();
         services.AddSingleton<IViewportOverlaySource, OriginOverlaySource>();
         services.AddSingleton<IViewportSceneComposer, ViewportSceneComposer>();
+        services.AddSingleton<IPlaybackStateService, PlaybackStateService>();
 
         services.AddTransient<ViewportViewModel>();
+        services.AddTransient<PlaybackTransportViewModel>();
         services.AddTransient<MainWindowViewModel>();
         services.AddTransient<MainWindow>();
 

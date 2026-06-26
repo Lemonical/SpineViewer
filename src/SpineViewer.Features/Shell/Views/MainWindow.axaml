@@ -3,6 +3,7 @@
     xmlns="https://github.com/avaloniaui"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:coreModels="using:SpineViewer.Core.Models"
+    xmlns:playbackViews="using:SpineViewer.Features.Playback.Views"
     xmlns:viewModels="using:SpineViewer.Features.Shell.ViewModels"
     xmlns:viewportViews="using:SpineViewer.Features.Viewport.Views"
     Width="1280"
@@ -12,6 +13,18 @@
     Background="#09101A"
     x:DataType="viewModels:MainWindowViewModel"
     Title="{Binding Title}">
+    <Window.KeyBindings>
+        <KeyBinding Command="{Binding Viewport.FitToViewCommand}" Gesture="F" />
+        <KeyBinding Command="{Binding Viewport.ResetCameraCommand}" Gesture="D0" />
+        <KeyBinding Command="{Binding Viewport.ToggleGridCommand}" Gesture="G" />
+        <KeyBinding Command="{Binding Viewport.ToggleOriginCommand}" Gesture="O" />
+        <KeyBinding Command="{Binding Viewport.CycleBackgroundCommand}" Gesture="B" />
+        <KeyBinding Command="{Binding Playback.TogglePlayPauseCommand}" Gesture="Space" />
+        <KeyBinding Command="{Binding Playback.StopCommand}" Gesture="S" />
+        <KeyBinding Command="{Binding Playback.RestartCommand}" Gesture="R" />
+        <KeyBinding Command="{Binding Playback.ToggleLoopCommand}" Gesture="L" />
+        <KeyBinding Command="{Binding Playback.FrameStepCommand}" Gesture="Right" />
+    </Window.KeyBindings>
     <Grid RowDefinitions="Auto,Auto,Auto,*,Auto" RowSpacing="16" Margin="20">
         <Border
             Background="#111A26"
@@ -149,7 +162,7 @@
                 BorderThickness="1"
                 CornerRadius="22"
                 Padding="12">
-                <Grid RowDefinitions="Auto,*" RowSpacing="12">
+                <Grid RowDefinitions="Auto,Auto,*" RowSpacing="12">
                     <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16">
                         <StackPanel Spacing="2">
                             <TextBlock FontSize="18" FontWeight="SemiBold" Text="Viewport" />
@@ -166,14 +179,16 @@
                         </Border>
                     </Grid>
 
+                    <viewportViews:ViewportToolbarView Grid.Row="1" DataContext="{Binding Viewport}" />
+
                     <Border
-                        Grid.Row="1"
+                        Grid.Row="2"
                         Background="#08111C"
                         BorderBrush="#1F2D41"
                         BorderThickness="1"
                         CornerRadius="16"
                         Padding="18">
-                        <Grid>
+                        <Grid RowDefinitions="*,Auto" RowSpacing="12">
                             <Grid IsVisible="{Binding HasActiveSession}">
                                 <viewportViews:ViewportView DataContext="{Binding Viewport}" />
                             </Grid>
@@ -298,6 +313,10 @@
                                     TextWrapping="Wrap" />
                                 <ProgressBar IsIndeterminate="True" />
                             </StackPanel>
+
+                            <playbackViews:PlaybackTransportView
+                                Grid.Row="1"
+                                DataContext="{Binding Playback}" />
                         </Grid>
                     </Border>
                 </Grid>

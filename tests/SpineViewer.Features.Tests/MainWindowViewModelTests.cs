@@ -1,8 +1,12 @@
+using Avalonia.Media;
 using SpineViewer.Core.Abstractions;
 using SpineViewer.Core.Models;
+using SpineViewer.Features.Playback.Services;
+using SpineViewer.Features.Playback.ViewModels;
 using SpineViewer.Features.Shell.ViewModels;
 using SpineViewer.Features.Viewport.Contracts;
 using SpineViewer.Features.Viewport.Models;
+using SpineViewer.Features.Viewport.Services;
 using SpineViewer.Features.Viewport.ViewModels;
 using Xunit;
 
@@ -21,7 +25,8 @@ public sealed class MainWindowViewModelTests
                 "Opened Hero.",
                 false));
         ViewportViewModel viewportViewModel = CreateViewportViewModel(workspaceSessionService);
-        MainWindowViewModel viewModel = new(workspaceSessionService, viewportViewModel);
+        PlaybackTransportViewModel playbackViewModel = CreatePlaybackViewModel(workspaceSessionService);
+        MainWindowViewModel viewModel = new(workspaceSessionService, viewportViewModel, playbackViewModel);
 
         Assert.Equal("Hero - SpineViewer", viewModel.Title);
         Assert.Equal("Hero", viewModel.CurrentProjectName);
@@ -30,9 +35,12 @@ public sealed class MainWindowViewModelTests
         Assert.True(viewModel.HasActiveSession);
         Assert.True(viewModel.HasRecentFiles);
         Assert.Equal("1 recent project(s)", viewModel.RecentFilesSummaryText);
+        Assert.Contains("Stopped", viewModel.CurrentPlaybackSummary);
+        Assert.Contains("Studio", viewModel.CurrentViewportSummary);
         Assert.False(viewModel.ShowLandingState);
         Assert.False(viewModel.IsCompactLayout);
         Assert.Same(viewportViewModel, viewModel.Viewport);
+        Assert.Same(playbackViewModel, viewModel.Playback);
     }
 
     [Fact]
@@ -46,7 +54,7 @@ public sealed class MainWindowViewModelTests
                 "Ready.",
                 false));
 
-        MainWindowViewModel viewModel = new(workspaceSessionService, CreateViewportViewModel(workspaceSessionService));
+        MainWindowViewModel viewModel = CreateShellViewModel(workspaceSessionService);
 
         Assert.True(viewModel.ShowLandingState);
         Assert.True(viewModel.ShowFirstRunState);
@@ -66,7 +74,7 @@ public sealed class MainWindowViewModelTests
                 Array.Empty<ViewerDiagnostic>(),
                 "Ready.",
                 false));
-        MainWindowViewModel viewModel = new(workspaceSessionService, CreateViewportViewModel(workspaceSessionService));
+        MainWindowViewModel viewModel = CreateShellViewModel(workspaceSessionService);
 
         viewModel.UpdateLayoutWidth(900.0);
 
@@ -89,7 +97,7 @@ public sealed class MainWindowViewModelTests
                 Array.Empty<ViewerDiagnostic>(),
                 "Opened Hero.",
                 false));
-        MainWindowViewModel viewModel = new(workspaceSessionService, CreateViewportViewModel(workspaceSessionService));
+        MainWindowViewModel viewModel = CreateShellViewModel(workspaceSessionService);
 
         await viewModel.ReloadSessionCommand.ExecuteAsync(null);
 
@@ -108,10 +116,8 @@ public sealed class MainWindowViewModelTests
                 Array.Empty<ViewerDiagnostic>(),
                 "Ready.",
                 false));
-        MainWindowViewModel viewModel = new(workspaceSessionService, CreateViewportViewModel(workspaceSessionService))
-        {
-            SelectedRecentProject = mage,
-        };
+        MainWindowViewModel viewModel = CreateShellViewModel(workspaceSessionService);
+        viewModel.SelectedRecentProject = mage;
 
         await viewModel.OpenSelectedRecentProjectCommand.ExecuteAsync(null);
 
@@ -128,7 +134,7 @@ public sealed class MainWindowViewModelTests
                 Array.Empty<ViewerDiagnostic>(),
                 "Ready.",
                 false));
-        MainWindowViewModel viewModel = new(workspaceSessionService, CreateViewportViewModel(workspaceSessionService));
+        MainWindowViewModel viewModel = CreateShellViewModel(workspaceSessionService);
 
         await viewModel.OpenFilesAsync(["hero.atlas", "hero.json"], CancellationToken.None);
 
@@ -152,7 +158,7 @@ public sealed class MainWindowViewModelTests
                 Array.Empty<ViewerDiagnostic>(),
                 "Ready.",
                 false));
-        MainWindowViewModel viewModel = new(workspaceSessionService, CreateViewportViewModel(workspaceSessionService));
+        MainWindowViewModel viewModel = CreateShellViewModel(workspaceSessionService);
 
         workspaceSessionService.UpdateState(
             new WorkspaceState(
@@ -183,7 +189,7 @@ public sealed class MainWindowViewModelTests
                 Array.Empty<ViewerDiagnostic>(),
                 "Ready.",
                 false));
-        MainWindowViewModel viewModel = new(workspaceSessionService, CreateViewportViewModel(workspaceSessionService));
+        MainWindowViewModel viewModel = CreateShellViewModel(workspaceSessionService);
 
         workspaceSessionService.UpdateState(
             new WorkspaceState(
@@ -198,6 +204,25 @@ public sealed class MainWindowViewModelTests
         Assert.False(viewModel.ShowFirstRunState);
         Assert.Equal("Couldn't open that model.", viewModel.WorkspaceExperienceTitle);
         Assert.Equal(diagnostic.SuggestedAction, viewModel.SelectedDiagnosticSuggestedAction);
+    }
+
+    private static MainWindowViewModel CreateShellViewModel(
+        IWorkspaceSessionService workspaceSessionService)
+    {
+        return new MainWindowViewModel(
+            workspaceSessionService,
+            CreateViewportViewModel(workspaceSessionService),
+            CreatePlaybackViewModel(workspaceSessionService));
+    }
+
+    private static PlaybackTransportViewModel CreatePlaybackViewModel(
+        IWorkspaceSessionService workspaceSessionService)
+    {
+        return new PlaybackTransportViewModel(
+            workspaceSessionService,
+            new PlaybackStateService(),
+            new StubRenderInvalidationService(),
+            new StubViewportFrameScheduler());
     }
 
     private static SpineProjectSession CreateSession(string displayName)
@@ -297,6 +322,7 @@ public sealed class MainWindowViewModelTests
             workspaceSessionService,
             new StubRenderInvalidationService(),
             new StubViewportFrameScheduler(),
+            new ViewportCameraService(),
             new StubViewportSceneComposer());
     }
 
@@ -312,6 +338,8 @@ public sealed class MainWindowViewModelTests
 
     private sealed class StubViewportFrameScheduler : IViewportFrameScheduler
     {
+        public TimeSpan FrameInterval => TimeSpan.FromSeconds(1.0 / 60.0);
+
         public bool IsRunning => false;
 
         public void Start()
@@ -331,7 +359,7 @@ public sealed class MainWindowViewModelTests
             long frameVersion)
         {
             return new ViewportRenderScene(
-                Avalonia.Media.Color.FromRgb(0x10, 0x15, 0x1F),
+                Color.FromRgb(0x10, 0x15, 0x1F),
                 new ViewportRenderTransform(1.0, 0.0, 0.0),
                 Array.Empty<ViewportOverlayLine>(),
                 frameVersion,
