@@ -1,0 +1,142 @@
+<UserControl
+    x:Class="SpineViewer.Features.Playback.Views.AnimationTrackEditorView"
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:coreModels="using:SpineViewer.Core.Models"
+    xmlns:playbackModels="using:SpineViewer.Features.Playback.Models"
+    xmlns:viewModels="using:SpineViewer.Features.Playback.ViewModels"
+    x:DataType="viewModels:AnimationTrackEditorViewModel">
+    <Border
+        Background="#101A29"
+        BorderBrush="#263547"
+        BorderThickness="1"
+        CornerRadius="16"
+        Padding="14">
+        <Grid ColumnDefinitions="1.2*,1*" ColumnSpacing="16" RowDefinitions="Auto,*,Auto">
+            <StackPanel Grid.ColumnSpan="2" Spacing="4">
+                <TextBlock FontSize="16" FontWeight="SemiBold" Text="Track Stack" />
+                <TextBlock Classes="hint" Text="Tracks update immediately so layering stays visible while you edit." TextWrapping="Wrap" />
+            </StackPanel>
+
+            <StackPanel Grid.Row="1" Spacing="12">
+                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+                    <ComboBox
+                        ItemsSource="{Binding AvailableAnimationNames}"
+                        SelectedItem="{Binding SelectedNewTrackAnimationName}" />
+                    <Button Grid.Column="1" Command="{Binding AddTrackCommand}" Content="Add Track" />
+                </Grid>
+
+                <TextBlock
+                    Classes="hint"
+                    IsVisible="{Binding HasNoTracks}"
+                    Text="{Binding EmptyStateText}"
+                    TextWrapping="Wrap" />
+
+                <ListBox ItemsSource="{Binding Tracks}" SelectedItem="{Binding SelectedTrack}">
+                    <ListBox.ItemTemplate>
+                        <DataTemplate x:DataType="coreModels:AnimationTrackState">
+                            <Border Background="#152235" CornerRadius="12" Margin="0,0,0,8" Padding="10">
+                                <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="10">
+                                    <Border
+                                        Background="#20324B"
+                                        CornerRadius="999"
+                                        Padding="8,3"
+                                        VerticalAlignment="Top">
+                                        <TextBlock Text="{Binding TrackIndex}" />
+                                    </Border>
+
+                                    <StackPanel Grid.Column="1" Spacing="2">
+                                        <TextBlock FontWeight="SemiBold" Text="{Binding AnimationName}" />
+                                        <TextBlock
+                                            Classes="hint"
+                                            Text="{Binding MixDuration}"
+                                            TextWrapping="Wrap" />
+                                    </StackPanel>
+
+                                    <StackPanel Grid.Column="2" HorizontalAlignment="Right" Spacing="2">
+                                        <TextBlock HorizontalAlignment="Right" Text="{Binding TimeScale, StringFormat={}{0:0.00}x}" />
+                                        <TextBlock
+                                            Classes="hint"
+                                            HorizontalAlignment="Right"
+                                            Text="{Binding IsEnabled, StringFormat=Enabled: {0}}" />
+                                    </StackPanel>
+                                </Grid>
+                            </Border>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+            </StackPanel>
+
+            <Border
+                Grid.Column="1"
+                Grid.Row="1"
+                Background="#152235"
+                CornerRadius="14"
+                Padding="14">
+                <StackPanel Spacing="10">
+                    <TextBlock FontWeight="SemiBold" Text="Selected Track" />
+
+                    <TextBlock
+                        Classes="hint"
+                        IsVisible="{Binding HasNoSelectedTrack}"
+                        Text="Select a track to edit its animation, blend, and loop settings."
+                        TextWrapping="Wrap" />
+
+                    <Grid
+                        ColumnDefinitions="Auto,*"
+                        ColumnSpacing="10"
+                        IsVisible="{Binding HasSelectedTrack}"
+                        RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto"
+                        RowSpacing="10">
+                        <TextBlock Text="Animation" VerticalAlignment="Center" />
+                        <ComboBox
+                            Grid.Column="1"
+                            ItemsSource="{Binding AvailableAnimationNames}"
+                            SelectedItem="{Binding SelectedTrackAnimationName}" />
+
+                        <TextBlock Grid.Row="1" Text="Enabled" VerticalAlignment="Center" />
+                        <CheckBox Grid.Column="1" Grid.Row="1" IsChecked="{Binding SelectedTrackIsEnabled}" />
+
+                        <TextBlock Grid.Row="2" Text="Loop" VerticalAlignment="Center" />
+                        <CheckBox Grid.Column="1" Grid.Row="2" IsChecked="{Binding SelectedTrackIsLooping}" />
+
+                        <TextBlock Grid.Row="3" Text="Speed" VerticalAlignment="Center" />
+                        <NumericUpDown
+                            Grid.Column="1"
+                            Grid.Row="3"
+                            Increment="0.05"
+                            Minimum="0.1"
+                            Maximum="4.0"
+                            Value="{Binding SelectedTrackTimeScale}" />
+
+                        <TextBlock Grid.Row="4" Text="Mix (s)" VerticalAlignment="Center" />
+                        <NumericUpDown
+                            Grid.Column="1"
+                            Grid.Row="4"
+                            Increment="0.05"
+                            Minimum="0"
+                            Maximum="5"
+                            Value="{Binding SelectedTrackMixDurationSeconds}" />
+
+                        <WrapPanel Grid.ColumnSpan="2" Grid.Row="5" Orientation="Horizontal">
+                            <Button Command="{Binding MoveSelectedTrackUpCommand}" Content="Move Up" />
+                            <Button Command="{Binding MoveSelectedTrackDownCommand}" Content="Move Down" Margin="10,0,0,0" />
+                            <Button Command="{Binding RemoveSelectedTrackCommand}" Content="Remove" Margin="10,0,0,0" />
+                        </WrapPanel>
+                    </Grid>
+                </StackPanel>
+            </Border>
+
+            <StackPanel Grid.ColumnSpan="2" Grid.Row="2" Spacing="8">
+                <TextBlock FontWeight="SemiBold" Text="{Binding ValidationSummaryText}" />
+                <ItemsControl ItemsSource="{Binding ValidationIssues}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="playbackModels:PlaybackTrackValidationIssue">
+                            <TextBlock Text="{Binding Message}" TextWrapping="Wrap" />
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </StackPanel>
+        </Grid>
+    </Border>
+</UserControl>
