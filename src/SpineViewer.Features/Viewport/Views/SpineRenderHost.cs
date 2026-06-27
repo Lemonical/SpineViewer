@@ -1,6 +1,7 @@
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Media;
+using System.Globalization;
 using SpineViewer.Features.Viewport.Models;
 
 namespace SpineViewer.Features.Viewport.Views;
@@ -53,6 +54,21 @@ public sealed class SpineRenderHost : Control
             Point start = TransformPoint(scene.Transform, worldLine.StartX, worldLine.StartY);
             Point end = TransformPoint(scene.Transform, worldLine.EndX, worldLine.EndY);
             context.DrawLine(new Pen(new SolidColorBrush(worldLine.Color), worldLine.Thickness), start, end);
+        }
+
+        foreach (ViewportOverlayText overlayText in scene.OverlayText)
+        {
+            Point position = overlayText.UseWorldCoordinates
+                ? TransformPoint(scene.Transform, overlayText.X, overlayText.Y)
+                : new Point(overlayText.X, overlayText.Y);
+            FormattedText formattedText = new(
+                overlayText.Text,
+                CultureInfo.CurrentUICulture,
+                FlowDirection.LeftToRight,
+                new Typeface(FontFamily.Default),
+                overlayText.FontSize,
+                new SolidColorBrush(overlayText.Color));
+            context.DrawText(formattedText, position);
         }
     }
 

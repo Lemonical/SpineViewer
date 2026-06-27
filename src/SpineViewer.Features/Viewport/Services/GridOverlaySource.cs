@@ -40,4 +40,10 @@ public sealed class GridOverlaySource : IViewportOverlaySource
 
         return lines;
     }
+
+    /// <inheritdoc />
+    public IReadOnlyList<ViewportOverlayText> CreateOverlayText(ViewportOverlayContext context)
+    {
+        return Array.Empty<ViewportOverlayText>();
+    }
 }

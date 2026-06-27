@@ -10,26 +10,39 @@
         BorderThickness="1"
         CornerRadius="16"
         Padding="12">
-        <Grid ColumnDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto,*,Auto" ColumnSpacing="10">
-            <Button Command="{Binding FitToViewCommand}" Content="Fit" MinWidth="72" />
-            <Button Command="{Binding ResetCameraCommand}" Content="Reset" Grid.Column="1" MinWidth="72" />
-            <Button Command="{Binding ZoomOutCommand}" Content="-" Grid.Column="2" MinWidth="44" />
-            <Button Command="{Binding ZoomInCommand}" Content="+" Grid.Column="3" MinWidth="44" />
+        <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto" RowSpacing="10">
+            <WrapPanel Orientation="Horizontal">
+                <Button Command="{Binding FitToViewCommand}" Content="Fit" MinWidth="72" />
+                <Button Command="{Binding ResetCameraCommand}" Content="Reset" Margin="10,0,0,0" MinWidth="72" />
+                <Button Command="{Binding ZoomOutCommand}" Content="-" Margin="10,0,0,0" MinWidth="44" />
+                <Button Command="{Binding ZoomInCommand}" Content="+" Margin="10,0,0,0" MinWidth="44" />
 
-            <CheckBox Grid.Column="4" Content="Grid" IsChecked="{Binding IsGridVisible}" VerticalAlignment="Center" />
-            <CheckBox Grid.Column="5" Content="Origin" IsChecked="{Binding IsOriginVisible}" VerticalAlignment="Center" />
-            <CheckBox Grid.Column="6" Content="Bones" IsChecked="{Binding IsBonesVisible}" VerticalAlignment="Center" />
-            <CheckBox Grid.Column="7" Content="Bounds" HorizontalAlignment="Left" IsChecked="{Binding IsBoundsVisible}" VerticalAlignment="Center" />
+                <CheckBox Content="Grid" IsChecked="{Binding IsGridVisible}" Margin="16,0,0,0" VerticalAlignment="Center" />
+                <CheckBox Content="Origin" IsChecked="{Binding IsOriginVisible}" Margin="12,0,0,0" VerticalAlignment="Center" />
+                <CheckBox Content="Bones" IsChecked="{Binding IsBonesVisible}" Margin="12,0,0,0" VerticalAlignment="Center" />
+                <CheckBox Content="Bounds" IsChecked="{Binding IsBoundsVisible}" Margin="12,0,0,0" VerticalAlignment="Center" />
+                <CheckBox Content="Mesh" IsChecked="{Binding IsMeshWireframeVisible}" Margin="12,0,0,0" VerticalAlignment="Center" />
+                <CheckBox Content="Slots" IsChecked="{Binding IsSlotOutlinesVisible}" Margin="12,0,0,0" VerticalAlignment="Center" />
+                <CheckBox Content="Labels" IsChecked="{Binding IsLabelsVisible}" Margin="12,0,0,0" VerticalAlignment="Center" />
+                <CheckBox Content="Missing" IsChecked="{Binding IsMissingResourceIndicatorsVisible}" Margin="12,0,0,0" VerticalAlignment="Center" />
+                <CheckBox Content="Warnings" IsChecked="{Binding IsUnsupportedFeatureIndicatorsVisible}" Margin="12,0,0,0" VerticalAlignment="Center" />
+            </WrapPanel>
 
-            <StackPanel Grid.Column="8" HorizontalAlignment="Right" Spacing="4">
+            <StackPanel Grid.Column="1" HorizontalAlignment="Right" Spacing="4">
                 <ComboBox
                     HorizontalAlignment="Right"
                     ItemsSource="{Binding BackgroundOptions}"
                     MinWidth="130"
                     SelectedItem="{Binding SelectedBackgroundStyle}" />
                 <TextBlock HorizontalAlignment="Right" Text="{Binding ZoomSummaryText}" />
-                <TextBlock Classes="hint" HorizontalAlignment="Right" Text="{Binding InteractionHintText}" />
             </StackPanel>
+
+            <TextBlock
+                Grid.Row="1"
+                Grid.ColumnSpan="2"
+                Classes="hint"
+                Text="{Binding InteractionHintText}"
+                TextWrapping="Wrap" />
         </Grid>
     </Border>
 </UserControl>

@@ -1,0 +1,65 @@
+<UserControl
+    x:Class="SpineViewer.Features.Diagnostics.Views.DiagnosticsPanelView"
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:coreModels="using:SpineViewer.Core.Models"
+    xmlns:viewModels="using:SpineViewer.Features.Diagnostics.ViewModels"
+    x:DataType="viewModels:DiagnosticsPanelViewModel">
+    <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+        <StackPanel Margin="4" Spacing="14">
+            <Border Background="#172234" CornerRadius="14" Padding="14">
+                <StackPanel Spacing="6">
+                    <TextBlock FontSize="18" FontWeight="SemiBold" Text="Overlay Summary" />
+                    <TextBlock Classes="hint" Text="{Binding OverlaySummaryText}" TextWrapping="Wrap" />
+                </StackPanel>
+            </Border>
+
+            <Border Background="#172234" CornerRadius="14" Padding="14">
+                <StackPanel Spacing="8">
+                    <TextBlock FontSize="18" FontWeight="SemiBold" Text="Diagnostics" />
+                    <TextBlock
+                        Classes="hint"
+                        IsVisible="{Binding HasNoDiagnostics}"
+                        Text="No workspace diagnostics are active."
+                        TextWrapping="Wrap" />
+                    <ListBox ItemsSource="{Binding Diagnostics}" SelectedItem="{Binding SelectedDiagnostic}">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate x:DataType="coreModels:ViewerDiagnostic">
+                                <StackPanel Margin="2" Spacing="2">
+                                    <TextBlock FontWeight="SemiBold" Text="{Binding Message}" TextWrapping="Wrap" />
+                                    <TextBlock Classes="hint" Text="{Binding Severity}" />
+                                </StackPanel>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                </StackPanel>
+            </Border>
+
+            <Border Background="#172234" CornerRadius="14" Padding="14">
+                <StackPanel Spacing="6">
+                    <TextBlock FontWeight="SemiBold" Text="{Binding SelectedDiagnostic.Code}" />
+                    <TextBlock Text="{Binding SelectedDiagnostic.Message}" TextWrapping="Wrap" />
+                    <TextBlock Classes="hint" Text="{Binding SelectedDiagnostic.Source}" TextWrapping="Wrap" />
+                    <TextBlock Classes="hint" Text="{Binding SelectedDiagnostic.Details}" TextWrapping="Wrap" />
+                    <TextBlock Classes="hint" Text="{Binding SelectedDiagnostic.SuggestedAction}" TextWrapping="Wrap" />
+                </StackPanel>
+            </Border>
+
+            <Border Background="#172234" CornerRadius="14" Padding="14">
+                <StackPanel Spacing="8">
+                    <TextBlock FontSize="18" FontWeight="SemiBold" Text="Unsupported Features" />
+                    <ItemsControl ItemsSource="{Binding UnsupportedFeatures}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="coreModels:UnsupportedSpineFeature">
+                                <StackPanel Margin="0,0,0,8" Spacing="2">
+                                    <TextBlock FontWeight="SemiBold" Text="{Binding DisplayName}" />
+                                    <TextBlock Classes="hint" Text="{Binding Details}" TextWrapping="Wrap" />
+                                </StackPanel>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
+            </Border>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

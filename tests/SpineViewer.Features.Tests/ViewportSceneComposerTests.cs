@@ -32,19 +32,21 @@ public sealed class ViewportSceneComposerTests
         Assert.Equal(1.5, scene.Transform.Scale);
         Assert.Equal(420.0, scene.Transform.TranslateX);
         Assert.Equal(290.0, scene.Transform.TranslateY);
-        Assert.Equal(17, scene.WorldLines.Count);
+        Assert.Equal(8, scene.WorldLines.Count);
         Assert.NotNull(scene.ContentBounds);
-        Assert.Equal(-130.0, Assert.IsType<ViewportContentBounds>(scene.ContentBounds).MinimumX);
+        Assert.Equal(-90.0, Assert.IsType<ViewportContentBounds>(scene.ContentBounds).MinimumX);
     }
 
     private static IReadOnlyList<IViewportOverlaySource> CreateOverlaySources()
     {
+        ViewportInspectionOverlayFactory inspectionOverlayFactory = new();
+
         return
         [
             new GridOverlaySource(),
-            new SessionPlaceholderOverlaySource(),
-            new BoneOverlaySource(),
-            new BoundsOverlaySource(),
+            new SessionPlaceholderOverlaySource(inspectionOverlayFactory),
+            new BoneOverlaySource(inspectionOverlayFactory),
+            new BoundsOverlaySource(inspectionOverlayFactory),
             new OriginOverlaySource(),
         ];
     }

@@ -13,4 +13,11 @@ public interface IViewportOverlaySource
     /// <param name="context">The current overlay context.</param>
     /// <returns>The world-space lines contributed by this overlay source.</returns>
     IReadOnlyList<ViewportOverlayLine> CreateWorldLines(ViewportOverlayContext context);
+
+    /// <summary>
+    /// Creates the text overlays for the current frame.
+    /// </summary>
+    /// <param name="context">The current overlay context.</param>
+    /// <returns>The text overlays contributed by this overlay source.</returns>
+    IReadOnlyList<ViewportOverlayText> CreateOverlayText(ViewportOverlayContext context);
 }

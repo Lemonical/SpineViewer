@@ -9,13 +9,15 @@ namespace SpineViewer.Features.Viewport.Services;
 /// </summary>
 public sealed class BoneOverlaySource : IViewportOverlaySource
 {
-    private static readonly Color BoneColor = Color.FromRgb(0xF2, 0xCC, 0x8F);
+    private readonly IViewportInspectionOverlayFactory _inspectionOverlayFactory;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="BoneOverlaySource"/> class.
     /// </summary>
-    public BoneOverlaySource()
+    public BoneOverlaySource(IViewportInspectionOverlayFactory inspectionOverlayFactory)
     {
+        _inspectionOverlayFactory =
+            inspectionOverlayFactory ?? throw new ArgumentNullException(nameof(inspectionOverlayFactory));
     }
 
     /// <inheritdoc />
@@ -28,13 +30,12 @@ public sealed class BoneOverlaySource : IViewportOverlaySource
             return Array.Empty<ViewportOverlayLine>();
         }
 
-        return
-        [
-            new ViewportOverlayLine(0, -80, 0, 40, BoneColor, 2.4),
-            new ViewportOverlayLine(0, -20, -55, 25, BoneColor, 2.0),
-            new ViewportOverlayLine(0, -20, 55, 25, BoneColor, 2.0),
-            new ViewportOverlayLine(0, 40, -35, 120, BoneColor, 2.0),
-            new ViewportOverlayLine(0, 40, 35, 120, BoneColor, 2.0),
-        ];
+        return _inspectionOverlayFactory.CreateBoneLines(context);
+    }
+
+    /// <inheritdoc />
+    public IReadOnlyList<ViewportOverlayText> CreateOverlayText(ViewportOverlayContext context)
+    {
+        return Array.Empty<ViewportOverlayText>();
     }
 }

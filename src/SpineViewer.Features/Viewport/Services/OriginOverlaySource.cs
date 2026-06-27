@@ -36,4 +36,10 @@ public sealed class OriginOverlaySource : IViewportOverlaySource
             new ViewportOverlayLine(0, -AxisExtent, 0, AxisExtent, VerticalAxisColor, 1.8, false),
         ];
     }
+
+    /// <inheritdoc />
+    public IReadOnlyList<ViewportOverlayText> CreateOverlayText(ViewportOverlayContext context)
+    {
+        return Array.Empty<ViewportOverlayText>();
+    }
 }

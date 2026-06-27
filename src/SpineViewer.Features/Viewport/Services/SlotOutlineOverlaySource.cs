@@ -1,20 +1,19 @@
-using Avalonia.Media;
 using SpineViewer.Features.Viewport.Contracts;
 using SpineViewer.Features.Viewport.Models;
 
 namespace SpineViewer.Features.Viewport.Services;
 
 /// <summary>
-/// Produces the viewport bounds overlay.
+/// Produces the viewport slot-outline overlay.
 /// </summary>
-public sealed class BoundsOverlaySource : IViewportOverlaySource
+public sealed class SlotOutlineOverlaySource : IViewportOverlaySource
 {
     private readonly IViewportInspectionOverlayFactory _inspectionOverlayFactory;
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="BoundsOverlaySource"/> class.
+    /// Initializes a new instance of the <see cref="SlotOutlineOverlaySource"/> class.
     /// </summary>
-    public BoundsOverlaySource(IViewportInspectionOverlayFactory inspectionOverlayFactory)
+    public SlotOutlineOverlaySource(IViewportInspectionOverlayFactory inspectionOverlayFactory)
     {
         _inspectionOverlayFactory =
             inspectionOverlayFactory ?? throw new ArgumentNullException(nameof(inspectionOverlayFactory));
@@ -23,14 +22,12 @@ public sealed class BoundsOverlaySource : IViewportOverlaySource
     /// <inheritdoc />
     public IReadOnlyList<ViewportOverlayLine> CreateWorldLines(ViewportOverlayContext context)
     {
-        ArgumentNullException.ThrowIfNull(context);
-
-        if (!context.HasActiveSession || !context.ViewportState.ShowBounds)
+        if (!context.ViewportState.ShowSlotOutlines)
         {
             return Array.Empty<ViewportOverlayLine>();
         }
 
-        return _inspectionOverlayFactory.CreateBoundsLines(context);
+        return _inspectionOverlayFactory.CreateSlotOutlineLines(context);
     }
 
     /// <inheritdoc />

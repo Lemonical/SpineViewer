@@ -180,5 +180,9 @@ public sealed class PlaybackTransportViewModelTests
         public void UpdateViewportState(ViewportState viewportState)
         {
         }
+
+        public void UpdateSelectedSkin(string? skinName)
+        {
+        }
     }
 }

@@ -10,7 +10,7 @@ namespace SpineViewer.Features.Viewport.ViewModels;
 /// <summary>
 /// Coordinates viewport rendering, camera interaction, and overlay controls without embedding draw logic in the view.
 /// </summary>
-public sealed partial class ViewportViewModel : ObservableObject
+public sealed partial class ViewportViewModel : ObservableObject, IDisposable
 {
     private const double KeyboardZoomFactor = 1.15;
     private readonly IRenderInvalidationService _renderInvalidationService;
@@ -100,6 +100,11 @@ public sealed partial class ViewportViewModel : ObservableObject
     [NotifyCanExecuteChangedFor(nameof(ToggleOriginCommand))]
     [NotifyCanExecuteChangedFor(nameof(ToggleBonesCommand))]
     [NotifyCanExecuteChangedFor(nameof(ToggleBoundsCommand))]
+    [NotifyCanExecuteChangedFor(nameof(ToggleMeshWireframeCommand))]
+    [NotifyCanExecuteChangedFor(nameof(ToggleSlotOutlinesCommand))]
+    [NotifyCanExecuteChangedFor(nameof(ToggleLabelsCommand))]
+    [NotifyCanExecuteChangedFor(nameof(ToggleMissingResourceIndicatorsCommand))]
+    [NotifyCanExecuteChangedFor(nameof(ToggleUnsupportedFeatureIndicatorsCommand))]
     [NotifyCanExecuteChangedFor(nameof(CycleBackgroundCommand))]
     private bool hasActiveSession;
 
@@ -128,10 +133,49 @@ public sealed partial class ViewportViewModel : ObservableObject
     private bool isBoundsVisible;
 
     /// <summary>
+    /// Gets a value indicating whether the mesh or wireframe overlay is visible.
+    /// </summary>
+    [ObservableProperty]
+    private bool isMeshWireframeVisible;
+
+    /// <summary>
+    /// Gets a value indicating whether the slot-outline overlay is visible.
+    /// </summary>
+    [ObservableProperty]
+    private bool isSlotOutlinesVisible;
+
+    /// <summary>
+    /// Gets a value indicating whether the labels overlay is visible.
+    /// </summary>
+    [ObservableProperty]
+    private bool isLabelsVisible;
+
+    /// <summary>
+    /// Gets a value indicating whether missing-resource indicators are visible.
+    /// </summary>
+    [ObservableProperty]
+    private bool isMissingResourceIndicatorsVisible;
+
+    /// <summary>
+    /// Gets a value indicating whether unsupported-feature indicators are visible.
+    /// </summary>
+    [ObservableProperty]
+    private bool isUnsupportedFeatureIndicatorsVisible;
+
+    /// <summary>
     /// Gets the currently selected background style.
     /// </summary>
     [ObservableProperty]
     private ViewportBackgroundStyle selectedBackgroundStyle;
+
+    /// <summary>
+    /// Releases the viewport subscriptions held by this view model.
+    /// </summary>
+    public void Dispose()
+    {
+        _workspaceSessionService.StateChanged -= OnWorkspaceStateChanged;
+        _renderInvalidationService.RenderInvalidated -= OnRenderInvalidated;
+    }
 
     /// <summary>
     /// Activates the viewport and enables recurring frame scheduling when playback requires it.
@@ -262,22 +306,124 @@ public sealed partial class ViewportViewModel : ObservableObject
             _currentViewportState.ShowGrid,
             _currentViewportState.ShowOrigin,
             value,
-            _currentViewportState.ShowBounds);
+            _currentViewportState.ShowBounds,
+            _currentViewportState.ShowMeshWireframe,
+            _currentViewportState.ShowSlotOutlines,
+            _currentViewportState.ShowLabels,
+            _currentViewportState.ShowMissingResourceIndicators,
+            _currentViewportState.ShowUnsupportedFeatureIndicators);
     }
 
     partial void OnIsBoundsVisibleChanged(bool value)
     {
-        UpdateOverlayVisibility(_currentViewportState.ShowGrid, _currentViewportState.ShowOrigin, _currentViewportState.ShowBones, value);
+        UpdateOverlayVisibility(
+            _currentViewportState.ShowGrid,
+            _currentViewportState.ShowOrigin,
+            _currentViewportState.ShowBones,
+            value,
+            _currentViewportState.ShowMeshWireframe,
+            _currentViewportState.ShowSlotOutlines,
+            _currentViewportState.ShowLabels,
+            _currentViewportState.ShowMissingResourceIndicators,
+            _currentViewportState.ShowUnsupportedFeatureIndicators);
     }
 
     partial void OnIsGridVisibleChanged(bool value)
     {
-        UpdateOverlayVisibility(value, _currentViewportState.ShowOrigin, _currentViewportState.ShowBones, _currentViewportState.ShowBounds);
+        UpdateOverlayVisibility(
+            value,
+            _currentViewportState.ShowOrigin,
+            _currentViewportState.ShowBones,
+            _currentViewportState.ShowBounds,
+            _currentViewportState.ShowMeshWireframe,
+            _currentViewportState.ShowSlotOutlines,
+            _currentViewportState.ShowLabels,
+            _currentViewportState.ShowMissingResourceIndicators,
+            _currentViewportState.ShowUnsupportedFeatureIndicators);
+    }
+
+    partial void OnIsLabelsVisibleChanged(bool value)
+    {
+        UpdateOverlayVisibility(
+            _currentViewportState.ShowGrid,
+            _currentViewportState.ShowOrigin,
+            _currentViewportState.ShowBones,
+            _currentViewportState.ShowBounds,
+            _currentViewportState.ShowMeshWireframe,
+            _currentViewportState.ShowSlotOutlines,
+            value,
+            _currentViewportState.ShowMissingResourceIndicators,
+            _currentViewportState.ShowUnsupportedFeatureIndicators);
+    }
+
+    partial void OnIsMeshWireframeVisibleChanged(bool value)
+    {
+        UpdateOverlayVisibility(
+            _currentViewportState.ShowGrid,
+            _currentViewportState.ShowOrigin,
+            _currentViewportState.ShowBones,
+            _currentViewportState.ShowBounds,
+            value,
+            _currentViewportState.ShowSlotOutlines,
+            _currentViewportState.ShowLabels,
+            _currentViewportState.ShowMissingResourceIndicators,
+            _currentViewportState.ShowUnsupportedFeatureIndicators);
+    }
+
+    partial void OnIsMissingResourceIndicatorsVisibleChanged(bool value)
+    {
+        UpdateOverlayVisibility(
+            _currentViewportState.ShowGrid,
+            _currentViewportState.ShowOrigin,
+            _currentViewportState.ShowBones,
+            _currentViewportState.ShowBounds,
+            _currentViewportState.ShowMeshWireframe,
+            _currentViewportState.ShowSlotOutlines,
+            _currentViewportState.ShowLabels,
+            value,
+            _currentViewportState.ShowUnsupportedFeatureIndicators);
     }
 
     partial void OnIsOriginVisibleChanged(bool value)
     {
-        UpdateOverlayVisibility(_currentViewportState.ShowGrid, value, _currentViewportState.ShowBones, _currentViewportState.ShowBounds);
+        UpdateOverlayVisibility(
+            _currentViewportState.ShowGrid,
+            value,
+            _currentViewportState.ShowBones,
+            _currentViewportState.ShowBounds,
+            _currentViewportState.ShowMeshWireframe,
+            _currentViewportState.ShowSlotOutlines,
+            _currentViewportState.ShowLabels,
+            _currentViewportState.ShowMissingResourceIndicators,
+            _currentViewportState.ShowUnsupportedFeatureIndicators);
+    }
+
+    partial void OnIsSlotOutlinesVisibleChanged(bool value)
+    {
+        UpdateOverlayVisibility(
+            _currentViewportState.ShowGrid,
+            _currentViewportState.ShowOrigin,
+            _currentViewportState.ShowBones,
+            _currentViewportState.ShowBounds,
+            _currentViewportState.ShowMeshWireframe,
+            value,
+            _currentViewportState.ShowLabels,
+            _currentViewportState.ShowMissingResourceIndicators,
+            _currentViewportState.ShowUnsupportedFeatureIndicators);
+    }
+
+    partial void OnIsUnsupportedFeatureIndicatorsVisibleChanged(bool value)
+    {
+        UpdateOverlayVisibility(
+            _currentViewportState.ShowGrid,
+            _currentViewportState.ShowOrigin,
+            _currentViewportState.ShowBones,
+            _currentViewportState.ShowBounds,
+            _currentViewportState.ShowMeshWireframe,
+            _currentViewportState.ShowSlotOutlines,
+            _currentViewportState.ShowLabels,
+            _currentViewportState.ShowMissingResourceIndicators,
+            value);
     }
 
     partial void OnSelectedBackgroundStyleChanged(ViewportBackgroundStyle value)
@@ -353,6 +499,36 @@ public sealed partial class ViewportViewModel : ObservableObject
     private void ToggleBounds()
     {
         IsBoundsVisible = !IsBoundsVisible;
+    }
+
+    [RelayCommand(CanExecute = nameof(CanToggleSessionViewport))]
+    private void ToggleLabels()
+    {
+        IsLabelsVisible = !IsLabelsVisible;
+    }
+
+    [RelayCommand(CanExecute = nameof(CanToggleSessionViewport))]
+    private void ToggleMeshWireframe()
+    {
+        IsMeshWireframeVisible = !IsMeshWireframeVisible;
+    }
+
+    [RelayCommand(CanExecute = nameof(CanToggleSessionViewport))]
+    private void ToggleMissingResourceIndicators()
+    {
+        IsMissingResourceIndicatorsVisible = !IsMissingResourceIndicatorsVisible;
+    }
+
+    [RelayCommand(CanExecute = nameof(CanToggleSessionViewport))]
+    private void ToggleSlotOutlines()
+    {
+        IsSlotOutlinesVisible = !IsSlotOutlinesVisible;
+    }
+
+    [RelayCommand(CanExecute = nameof(CanToggleSessionViewport))]
+    private void ToggleUnsupportedFeatureIndicators()
+    {
+        IsUnsupportedFeatureIndicatorsVisible = !IsUnsupportedFeatureIndicatorsVisible;
     }
 
     [RelayCommand(CanExecute = nameof(CanToggleSessionViewport))]
@@ -462,6 +638,11 @@ public sealed partial class ViewportViewModel : ObservableObject
             IsOriginVisible = viewportState.ShowOrigin;
             IsBonesVisible = viewportState.ShowBones;
             IsBoundsVisible = viewportState.ShowBounds;
+            IsMeshWireframeVisible = viewportState.ShowMeshWireframe;
+            IsSlotOutlinesVisible = viewportState.ShowSlotOutlines;
+            IsLabelsVisible = viewportState.ShowLabels;
+            IsMissingResourceIndicatorsVisible = viewportState.ShowMissingResourceIndicators;
+            IsUnsupportedFeatureIndicatorsVisible = viewportState.ShowUnsupportedFeatureIndicators;
             SelectedBackgroundStyle = viewportState.BackgroundStyle;
             OnPropertyChanged(nameof(ZoomSummaryText));
         }
@@ -520,7 +701,12 @@ public sealed partial class ViewportViewModel : ObservableObject
         bool showGrid,
         bool showOrigin,
         bool showBones,
-        bool showBounds)
+        bool showBounds,
+        bool showMeshWireframe,
+        bool showSlotOutlines,
+        bool showLabels,
+        bool showMissingResourceIndicators,
+        bool showUnsupportedFeatureIndicators)
     {
         if (_isSynchronizingControls || !HasActiveSession)
         {
@@ -534,6 +720,11 @@ public sealed partial class ViewportViewModel : ObservableObject
                 ShowOrigin = showOrigin,
                 ShowBones = showBones,
                 ShowBounds = showBounds,
+                ShowMeshWireframe = showMeshWireframe,
+                ShowSlotOutlines = showSlotOutlines,
+                ShowLabels = showLabels,
+                ShowMissingResourceIndicators = showMissingResourceIndicators,
+                ShowUnsupportedFeatureIndicators = showUnsupportedFeatureIndicators,
             });
     }
 

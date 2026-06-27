@@ -83,13 +83,15 @@ public sealed class ViewportViewModelTests
 
     private static IViewportSceneComposer CreateSceneComposer()
     {
+        ViewportInspectionOverlayFactory inspectionOverlayFactory = new();
+
         return new ViewportSceneComposer(
             new ViewportCameraService(),
             [
                 new GridOverlaySource(),
-                new SessionPlaceholderOverlaySource(),
-                new BoneOverlaySource(),
-                new BoundsOverlaySource(),
+                new SessionPlaceholderOverlaySource(inspectionOverlayFactory),
+                new BoneOverlaySource(inspectionOverlayFactory),
+                new BoundsOverlaySource(inspectionOverlayFactory),
                 new OriginOverlaySource(),
             ]);
     }
@@ -244,6 +246,25 @@ public sealed class ViewportViewModelTests
                     CurrentSession = State.CurrentSession with
                     {
                         Viewport = viewportState,
+                    },
+                });
+        }
+
+        public void UpdateSelectedSkin(string? skinName)
+        {
+            if (State.CurrentSession is null)
+            {
+                return;
+            }
+
+            SetState(
+                State with
+                {
+                    CurrentSession = State.CurrentSession with
+                    {
+                        SelectedSkinName = string.IsNullOrWhiteSpace(skinName)
+                            ? null
+                            : skinName,
                     },
                 });
         }

@@ -9,15 +9,15 @@ namespace SpineViewer.Features.Viewport.Services;
 /// </summary>
 public sealed class SessionPlaceholderOverlaySource : IViewportOverlaySource
 {
-    private static readonly Color PlaceholderColor = Color.FromRgb(0x8B, 0xC1, 0xD6);
-    private const int HalfWidth = 90;
-    private const int HalfHeight = 130;
+    private readonly IViewportInspectionOverlayFactory _inspectionOverlayFactory;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="SessionPlaceholderOverlaySource"/> class.
     /// </summary>
-    public SessionPlaceholderOverlaySource()
+    public SessionPlaceholderOverlaySource(IViewportInspectionOverlayFactory inspectionOverlayFactory)
     {
+        _inspectionOverlayFactory =
+            inspectionOverlayFactory ?? throw new ArgumentNullException(nameof(inspectionOverlayFactory));
     }
 
     /// <inheritdoc />
@@ -30,14 +30,12 @@ public sealed class SessionPlaceholderOverlaySource : IViewportOverlaySource
             return Array.Empty<ViewportOverlayLine>();
         }
 
-        return
-        [
-            new ViewportOverlayLine(-HalfWidth, -HalfHeight, HalfWidth, -HalfHeight, PlaceholderColor, 2.0),
-            new ViewportOverlayLine(HalfWidth, -HalfHeight, HalfWidth, HalfHeight, PlaceholderColor, 2.0),
-            new ViewportOverlayLine(HalfWidth, HalfHeight, -HalfWidth, HalfHeight, PlaceholderColor, 2.0),
-            new ViewportOverlayLine(-HalfWidth, HalfHeight, -HalfWidth, -HalfHeight, PlaceholderColor, 2.0),
-            new ViewportOverlayLine(-HalfWidth, -HalfHeight, HalfWidth, HalfHeight, PlaceholderColor, 1.2),
-            new ViewportOverlayLine(HalfWidth, -HalfHeight, -HalfWidth, HalfHeight, PlaceholderColor, 1.2),
-        ];
+        return _inspectionOverlayFactory.CreatePlaceholderLines(context);
+    }
+
+    /// <inheritdoc />
+    public IReadOnlyList<ViewportOverlayText> CreateOverlayText(ViewportOverlayContext context)
+    {
+        return Array.Empty<ViewportOverlayText>();
     }
 }

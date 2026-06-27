@@ -1,20 +1,19 @@
-using Avalonia.Media;
 using SpineViewer.Features.Viewport.Contracts;
 using SpineViewer.Features.Viewport.Models;
 
 namespace SpineViewer.Features.Viewport.Services;
 
 /// <summary>
-/// Produces the viewport bounds overlay.
+/// Produces missing-resource and unsupported-feature indicator overlays.
 /// </summary>
-public sealed class BoundsOverlaySource : IViewportOverlaySource
+public sealed class DiagnosticIndicatorOverlaySource : IViewportOverlaySource
 {
     private readonly IViewportInspectionOverlayFactory _inspectionOverlayFactory;
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="BoundsOverlaySource"/> class.
+    /// Initializes a new instance of the <see cref="DiagnosticIndicatorOverlaySource"/> class.
     /// </summary>
-    public BoundsOverlaySource(IViewportInspectionOverlayFactory inspectionOverlayFactory)
+    public DiagnosticIndicatorOverlaySource(IViewportInspectionOverlayFactory inspectionOverlayFactory)
     {
         _inspectionOverlayFactory =
             inspectionOverlayFactory ?? throw new ArgumentNullException(nameof(inspectionOverlayFactory));
@@ -23,19 +22,12 @@ public sealed class BoundsOverlaySource : IViewportOverlaySource
     /// <inheritdoc />
     public IReadOnlyList<ViewportOverlayLine> CreateWorldLines(ViewportOverlayContext context)
     {
-        ArgumentNullException.ThrowIfNull(context);
-
-        if (!context.HasActiveSession || !context.ViewportState.ShowBounds)
-        {
-            return Array.Empty<ViewportOverlayLine>();
-        }
-
-        return _inspectionOverlayFactory.CreateBoundsLines(context);
+        return Array.Empty<ViewportOverlayLine>();
     }
 
     /// <inheritdoc />
     public IReadOnlyList<ViewportOverlayText> CreateOverlayText(ViewportOverlayContext context)
     {
-        return Array.Empty<ViewportOverlayText>();
+        return _inspectionOverlayFactory.CreateDiagnosticText(context);
     }
 }

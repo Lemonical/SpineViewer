@@ -41,16 +41,19 @@ public sealed class ViewportSceneComposer : IViewportSceneComposer
         ViewportRenderTransform transform = _cameraService.CreateTransform(viewportState, hostLayout);
         ViewportOverlayContext context = new(workspaceState, viewportState, hostLayout);
         List<ViewportOverlayLine> worldLines = [];
+        List<ViewportOverlayText> overlayText = [];
 
         foreach (IViewportOverlaySource overlaySource in _overlaySources)
         {
             worldLines.AddRange(overlaySource.CreateWorldLines(context));
+            overlayText.AddRange(overlaySource.CreateOverlayText(context));
         }
 
         return new ViewportRenderScene(
             SelectBackgroundColor(workspaceState),
             transform,
             worldLines,
+            overlayText,
             frameVersion,
             workspaceState.CurrentSession is not null,
             workspaceState.CurrentSession?.Project.DisplayName);
