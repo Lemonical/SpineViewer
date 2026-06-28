@@ -2,7 +2,10 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using SpineViewer.Core.Abstractions;
 using SpineViewer.Core.Models;
+using SpineViewer.Features.Diagnostics.ViewModels;
+using SpineViewer.Features.Inspector.ViewModels;
 using SpineViewer.Features.Playback.ViewModels;
+using SpineViewer.Features.Settings.ViewModels;
 using SpineViewer.Features.Viewport.ViewModels;
 
 namespace SpineViewer.Features.Shell.ViewModels;
@@ -21,15 +24,27 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
     /// <param name="workspaceSessionService">The workspace service that drives shell session state.</param>
     /// <param name="viewport">The viewport view model shown inside the shell.</param>
     /// <param name="playback">The playback transport view model shown inside the shell.</param>
+    /// <param name="trackEditor">The track editor view model hosted by the shell.</param>
+    /// <param name="inspector">The inspector view model hosted by the shell.</param>
+    /// <param name="diagnosticsPanel">The diagnostics panel view model hosted by the shell.</param>
+    /// <param name="settings">The settings view model hosted by the shell.</param>
     public MainWindowViewModel(
         IWorkspaceSessionService workspaceSessionService,
         ViewportViewModel viewport,
-        PlaybackTransportViewModel playback)
+        PlaybackTransportViewModel playback,
+        AnimationTrackEditorViewModel trackEditor,
+        AssetInspectorViewModel inspector,
+        DiagnosticsPanelViewModel diagnosticsPanel,
+        ViewerSettingsViewModel settings)
     {
         _workspaceSessionService =
             workspaceSessionService ?? throw new ArgumentNullException(nameof(workspaceSessionService));
         Viewport = viewport ?? throw new ArgumentNullException(nameof(viewport));
         Playback = playback ?? throw new ArgumentNullException(nameof(playback));
+        TrackEditor = trackEditor ?? throw new ArgumentNullException(nameof(trackEditor));
+        Inspector = inspector ?? throw new ArgumentNullException(nameof(inspector));
+        DiagnosticsPanel = diagnosticsPanel ?? throw new ArgumentNullException(nameof(diagnosticsPanel));
+        Settings = settings ?? throw new ArgumentNullException(nameof(settings));
         _workspaceSessionService.StateChanged += OnWorkspaceStateChanged;
         ApplyState(_workspaceSessionService.State);
     }
@@ -50,6 +65,26 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
     /// Gets the playback transport view model hosted by the shell.
     /// </summary>
     public PlaybackTransportViewModel Playback { get; }
+
+    /// <summary>
+    /// Gets the track editor view model hosted by the shell.
+    /// </summary>
+    public AnimationTrackEditorViewModel TrackEditor { get; }
+
+    /// <summary>
+    /// Gets the inspector view model hosted by the shell.
+    /// </summary>
+    public AssetInspectorViewModel Inspector { get; }
+
+    /// <summary>
+    /// Gets the diagnostics panel view model hosted by the shell.
+    /// </summary>
+    public DiagnosticsPanelViewModel DiagnosticsPanel { get; }
+
+    /// <summary>
+    /// Gets the settings view model hosted by the shell.
+    /// </summary>
+    public ViewerSettingsViewModel Settings { get; }
 
     /// <summary>
     /// Gets the current session shown by the shell.
@@ -244,14 +279,14 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
     /// </summary>
     public string CurrentPlaybackSummary => CurrentSession is null
         ? "Open a model to enable playback controls."
-        : $"{CurrentSession.Playback.Status} | {(CurrentSession.Playback.IsLooping ? "Loop on" : "Loop off")} | {CurrentSession.Playback.Speed:0.00}x | {CurrentSession.Playback.CurrentTime:mm\\:ss\\.ff} / {CurrentSession.Playback.Duration:mm\\:ss\\.ff}";
+        : $"{CurrentSession.Playback.Status} | {CurrentSession.Playback.Tracks.Count} track(s) | {(CurrentSession.Playback.IsLooping ? "Loop on" : "Loop off")} | {CurrentSession.Playback.Speed:0.00}x | {CurrentSession.Playback.CurrentTime:mm\\:ss\\.ff} / {CurrentSession.Playback.Duration:mm\\:ss\\.ff}";
 
     /// <summary>
     /// Gets the viewport summary for the current session.
     /// </summary>
     public string CurrentViewportSummary => CurrentSession is null
         ? "Drop a Spine model here to preview it."
-        : $"Zoom {CurrentSession.Viewport.Zoom:P0} | {CurrentSession.Viewport.BackgroundStyle} | Grid {(CurrentSession.Viewport.ShowGrid ? "on" : "off")} | Origin {(CurrentSession.Viewport.ShowOrigin ? "on" : "off")}";
+        : $"Zoom {CurrentSession.Viewport.Zoom:P0} | {CurrentSession.Viewport.BackgroundStyle} | Debug {CountActiveViewportOverlays(CurrentSession.Viewport)} active";
 
     /// <summary>
     /// Gets the skeleton path for the current session.
@@ -442,7 +477,12 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
     public void Dispose()
     {
         _workspaceSessionService.StateChanged -= OnWorkspaceStateChanged;
+        Viewport.Dispose();
         Playback.Dispose();
+        TrackEditor.Dispose();
+        Inspector.Dispose();
+        DiagnosticsPanel.Dispose();
+        Settings.Dispose();
     }
 
     private void ApplyState(WorkspaceState state)
@@ -509,6 +549,58 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
     private bool CanReloadSession()
     {
         return CurrentSession is not null && !IsBusy;
+    }
+
+    private static int CountActiveViewportOverlays(ViewportState viewportState)
+    {
+        int activeCount = 0;
+
+        if (viewportState.ShowGrid)
+        {
+            activeCount++;
+        }
+
+        if (viewportState.ShowOrigin)
+        {
+            activeCount++;
+        }
+
+        if (viewportState.ShowBones)
+        {
+            activeCount++;
+        }
+
+        if (viewportState.ShowBounds)
+        {
+            activeCount++;
+        }
+
+        if (viewportState.ShowMeshWireframe)
+        {
+            activeCount++;
+        }
+
+        if (viewportState.ShowSlotOutlines)
+        {
+            activeCount++;
+        }
+
+        if (viewportState.ShowLabels)
+        {
+            activeCount++;
+        }
+
+        if (viewportState.ShowMissingResourceIndicators)
+        {
+            activeCount++;
+        }
+
+        if (viewportState.ShowUnsupportedFeatureIndicators)
+        {
+            activeCount++;
+        }
+
+        return activeCount;
     }
 
     private SpineProjectReference? ChooseRecentProjectSelection(WorkspaceState state)

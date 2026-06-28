@@ -2,10 +2,13 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using SpineViewer.Core.Abstractions;
 using SpineViewer.Core.Services;
+using SpineViewer.Features.Diagnostics.ViewModels;
 using SpineViewer.Features.Playback.Contracts;
 using SpineViewer.Features.Playback.Services;
+using SpineViewer.Features.Inspector.ViewModels;
 using SpineViewer.Features.Playback.ViewModels;
 using SpineViewer.Features.Shell.ViewModels;
+using SpineViewer.Features.Settings.ViewModels;
 using SpineViewer.Features.Viewport.Contracts;
 using SpineViewer.Features.Viewport.Services;
 using SpineViewer.Features.Viewport.ViewModels;
@@ -47,8 +50,11 @@ internal static class ServiceCollectionExtensions
         services.AddSingleton(typeof(IAppLogger<>), typeof(MicrosoftExtensionsAppLogger<>));
         services.AddSingleton<IApplicationStartupPipeline, ApplicationStartupPipeline>();
         services.AddSingleton<IApplicationStartupTask, LogApplicationStartupTask>();
+        services.AddSingleton<IApplicationThemeService, AvaloniaApplicationThemeService>();
+        services.AddSingleton<IApplicationStartupTask, ApplyViewerThemeStartupTask>();
         services.AddSingleton<IApplicationStartupTask, RestoreLastSessionStartupTask>();
         services.AddSingleton<ISettingsRepository>(_ => new JsonSettingsRepository(settingsPath));
+        services.AddSingleton<IViewerSettingsService, ViewerSettingsService>();
         services.AddSingleton<IRecentFilesService>(
             serviceProvider => new RecentFilesService(
                 recentFilesPath,
@@ -59,22 +65,33 @@ internal static class ServiceCollectionExtensions
         services.AddSingleton<ISpineProjectReferenceResolver, SpineProjectReferenceResolver>();
         services.AddSingleton<IVersionDetectionService, VersionDetectionService>();
         services.AddSingleton<IRuntimeSelectionService, RuntimeSelectionService>();
+        services.AddSingleton<ISpineProjectInspector, SpineProjectInspector>();
         services.AddSingleton<ISpineProjectLoader, SpineProjectLoader>();
         services.AddSingleton<ISpineSessionFactory, SpineSessionFactory>();
         services.AddSingleton<IWorkspaceSessionService, WorkspaceSessionService>();
         services.AddSingleton<IRenderInvalidationService, RenderInvalidationService>();
         services.AddSingleton<IViewportFrameScheduler, ViewportFrameScheduler>();
         services.AddSingleton<IViewportCameraService, ViewportCameraService>();
+        services.AddSingleton<IViewportInspectionOverlayFactory, ViewportInspectionOverlayFactory>();
         services.AddSingleton<IViewportOverlaySource, GridOverlaySource>();
         services.AddSingleton<IViewportOverlaySource, SessionPlaceholderOverlaySource>();
         services.AddSingleton<IViewportOverlaySource, BoneOverlaySource>();
         services.AddSingleton<IViewportOverlaySource, BoundsOverlaySource>();
+        services.AddSingleton<IViewportOverlaySource, MeshOverlaySource>();
+        services.AddSingleton<IViewportOverlaySource, SlotOutlineOverlaySource>();
+        services.AddSingleton<IViewportOverlaySource, LabelOverlaySource>();
+        services.AddSingleton<IViewportOverlaySource, DiagnosticIndicatorOverlaySource>();
         services.AddSingleton<IViewportOverlaySource, OriginOverlaySource>();
         services.AddSingleton<IViewportSceneComposer, ViewportSceneComposer>();
         services.AddSingleton<IPlaybackStateService, PlaybackStateService>();
+        services.AddSingleton<IPlaybackTrackEditorService, PlaybackTrackEditorService>();
 
         services.AddTransient<ViewportViewModel>();
         services.AddTransient<PlaybackTransportViewModel>();
+        services.AddTransient<AnimationTrackEditorViewModel>();
+        services.AddTransient<AssetInspectorViewModel>();
+        services.AddTransient<DiagnosticsPanelViewModel>();
+        services.AddTransient<ViewerSettingsViewModel>();
         services.AddTransient<MainWindowViewModel>();
         services.AddTransient<MainWindow>();
 

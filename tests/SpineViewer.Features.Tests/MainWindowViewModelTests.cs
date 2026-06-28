@@ -1,8 +1,11 @@
 using Avalonia.Media;
 using SpineViewer.Core.Abstractions;
 using SpineViewer.Core.Models;
+using SpineViewer.Features.Diagnostics.ViewModels;
+using SpineViewer.Features.Inspector.ViewModels;
 using SpineViewer.Features.Playback.Services;
 using SpineViewer.Features.Playback.ViewModels;
+using SpineViewer.Features.Settings.ViewModels;
 using SpineViewer.Features.Shell.ViewModels;
 using SpineViewer.Features.Viewport.Contracts;
 using SpineViewer.Features.Viewport.Models;
@@ -17,16 +20,29 @@ public sealed class MainWindowViewModelTests
     [Fact]
     public void Constructor_ReflectsWorkspaceState()
     {
-        StubWorkspaceSessionService workspaceSessionService = new(
+        TestWorkspaceSessionService workspaceSessionService = new(
             new WorkspaceState(
-                CreateSession("Hero"),
+                FeatureTestFactory.CreateSession("Hero"),
                 [new SpineProjectReference("Mage", "mage.json", "mage.atlas")],
                 Array.Empty<ViewerDiagnostic>(),
                 "Opened Hero.",
                 false));
         ViewportViewModel viewportViewModel = CreateViewportViewModel(workspaceSessionService);
         PlaybackTransportViewModel playbackViewModel = CreatePlaybackViewModel(workspaceSessionService);
-        MainWindowViewModel viewModel = new(workspaceSessionService, viewportViewModel, playbackViewModel);
+        TestViewerSettingsService viewerSettingsService = new(new ViewerSettings());
+        MainWindowViewModel viewModel = new(
+            workspaceSessionService,
+            viewportViewModel,
+            playbackViewModel,
+            new AnimationTrackEditorViewModel(
+                workspaceSessionService,
+                new PlaybackTrackEditorService(),
+                viewerSettingsService),
+            new AssetInspectorViewModel(workspaceSessionService),
+            new DiagnosticsPanelViewModel(workspaceSessionService),
+            new ViewerSettingsViewModel(
+                viewerSettingsService,
+                new TestApplicationThemeService()));
 
         Assert.Equal("Hero - SpineViewer", viewModel.Title);
         Assert.Equal("Hero", viewModel.CurrentProjectName);
@@ -46,7 +62,7 @@ public sealed class MainWindowViewModelTests
     [Fact]
     public void Constructor_WithoutSession_ExposesFirstRunGuidance()
     {
-        StubWorkspaceSessionService workspaceSessionService = new(
+        TestWorkspaceSessionService workspaceSessionService = new(
             new WorkspaceState(
                 null,
                 Array.Empty<SpineProjectReference>(),
@@ -67,7 +83,7 @@ public sealed class MainWindowViewModelTests
     [Fact]
     public void UpdateLayoutWidth_UsesCompactLayoutBelowThreshold()
     {
-        StubWorkspaceSessionService workspaceSessionService = new(
+        TestWorkspaceSessionService workspaceSessionService = new(
             new WorkspaceState(
                 null,
                 Array.Empty<SpineProjectReference>(),
@@ -90,9 +106,9 @@ public sealed class MainWindowViewModelTests
     [Fact]
     public async Task ReloadSessionCommand_RoutesToWorkspaceService()
     {
-        StubWorkspaceSessionService workspaceSessionService = new(
+        TestWorkspaceSessionService workspaceSessionService = new(
             new WorkspaceState(
-                CreateSession("Hero"),
+                FeatureTestFactory.CreateSession("Hero"),
                 [new SpineProjectReference("Hero", "hero.json", "hero.atlas")],
                 Array.Empty<ViewerDiagnostic>(),
                 "Opened Hero.",
@@ -109,7 +125,7 @@ public sealed class MainWindowViewModelTests
     {
         SpineProjectReference hero = new("Hero", "hero.json", "hero.atlas");
         SpineProjectReference mage = new("Mage", "mage.json", "mage.atlas");
-        StubWorkspaceSessionService workspaceSessionService = new(
+        TestWorkspaceSessionService workspaceSessionService = new(
             new WorkspaceState(
                 null,
                 [hero, mage],
@@ -127,7 +143,7 @@ public sealed class MainWindowViewModelTests
     [Fact]
     public async Task OpenFilesAsync_RoutesToWorkspaceService()
     {
-        StubWorkspaceSessionService workspaceSessionService = new(
+        TestWorkspaceSessionService workspaceSessionService = new(
             new WorkspaceState(
                 null,
                 Array.Empty<SpineProjectReference>(),
@@ -151,7 +167,7 @@ public sealed class MainWindowViewModelTests
             "Hero uses a compatibility fallback.",
             "Runtime Selection",
             suggestedAction: "Reload with a closer runtime when one is available.");
-        StubWorkspaceSessionService workspaceSessionService = new(
+        TestWorkspaceSessionService workspaceSessionService = new(
             new WorkspaceState(
                 null,
                 Array.Empty<SpineProjectReference>(),
@@ -162,7 +178,7 @@ public sealed class MainWindowViewModelTests
 
         workspaceSessionService.UpdateState(
             new WorkspaceState(
-                CreateSession("Hero"),
+                FeatureTestFactory.CreateSession("Hero"),
                 [hero],
                 [diagnostic],
                 "Opened Hero.",
@@ -182,7 +198,7 @@ public sealed class MainWindowViewModelTests
             "A texture referenced by the atlas could not be found.",
             "Resolver",
             suggestedAction: "Restore the missing texture or re-export the atlas.");
-        StubWorkspaceSessionService workspaceSessionService = new(
+        TestWorkspaceSessionService workspaceSessionService = new(
             new WorkspaceState(
                 null,
                 Array.Empty<SpineProjectReference>(),
@@ -209,10 +225,21 @@ public sealed class MainWindowViewModelTests
     private static MainWindowViewModel CreateShellViewModel(
         IWorkspaceSessionService workspaceSessionService)
     {
+        TestViewerSettingsService viewerSettingsService = new(new ViewerSettings());
+
         return new MainWindowViewModel(
             workspaceSessionService,
             CreateViewportViewModel(workspaceSessionService),
-            CreatePlaybackViewModel(workspaceSessionService));
+            CreatePlaybackViewModel(workspaceSessionService),
+            new AnimationTrackEditorViewModel(
+                workspaceSessionService,
+                new PlaybackTrackEditorService(),
+                viewerSettingsService),
+            new AssetInspectorViewModel(workspaceSessionService),
+            new DiagnosticsPanelViewModel(workspaceSessionService),
+            new ViewerSettingsViewModel(
+                viewerSettingsService,
+                new TestApplicationThemeService()));
     }
 
     private static PlaybackTransportViewModel CreatePlaybackViewModel(
@@ -223,97 +250,6 @@ public sealed class MainWindowViewModelTests
             new PlaybackStateService(),
             new StubRenderInvalidationService(),
             new StubViewportFrameScheduler());
-    }
-
-    private static SpineProjectSession CreateSession(string displayName)
-    {
-        return new SpineProjectSession(
-            Guid.NewGuid(),
-            new SpineProjectReference(displayName, $"{displayName.ToLowerInvariant()}.json", $"{displayName.ToLowerInvariant()}.atlas"),
-            new SpineAssetFileSet(
-                $"{displayName.ToLowerInvariant()}.json",
-                $"{displayName.ToLowerInvariant()}.atlas",
-                [$"{displayName.ToLowerInvariant()}.png"]),
-            new SpineRuntimeDescriptor(
-                "spine-4.1.00",
-                "Spine 4.1.00",
-                "4.1.x",
-                new SpineRuntimeCapabilities([new(SpineRuntimeFeature.JsonSkeleton, true)])),
-            new SpineVersionMatch("4.1.00", "spine-4.1.00", true, Array.Empty<ViewerDiagnostic>()),
-            new PlaybackState(),
-            new ViewportState(),
-            Array.Empty<ViewerDiagnostic>());
-    }
-
-    private sealed class StubWorkspaceSessionService : IWorkspaceSessionService
-    {
-        public StubWorkspaceSessionService(WorkspaceState state)
-        {
-            State = state;
-        }
-
-        public event EventHandler? StateChanged;
-
-        public WorkspaceState State { get; private set; }
-
-        public SpineProjectReference? LastOpenedProjectReference { get; private set; }
-
-        public IReadOnlyList<string> LastOpenedSelectedPaths { get; private set; } = Array.Empty<string>();
-
-        public int ReloadCount { get; private set; }
-
-        public Task CloseAsync(CancellationToken cancellationToken)
-        {
-            return Task.CompletedTask;
-        }
-
-        public Task InitializeAsync(CancellationToken cancellationToken)
-        {
-            StateChanged?.Invoke(this, EventArgs.Empty);
-            return Task.CompletedTask;
-        }
-
-        public Task OpenAsync(IReadOnlyList<string> selectedPaths, CancellationToken cancellationToken)
-        {
-            LastOpenedSelectedPaths = selectedPaths.ToArray();
-            return Task.CompletedTask;
-        }
-
-        public Task OpenAsync(string selectedPath, string? companionPath, CancellationToken cancellationToken)
-        {
-            return Task.CompletedTask;
-        }
-
-        public Task OpenAsync(SpineProjectReference projectReference, CancellationToken cancellationToken)
-        {
-            LastOpenedProjectReference = projectReference;
-            return Task.CompletedTask;
-        }
-
-        public Task ReloadAsync(CancellationToken cancellationToken)
-        {
-            ReloadCount++;
-            return Task.CompletedTask;
-        }
-
-        public Task RestoreLastSessionAsync(CancellationToken cancellationToken)
-        {
-            return Task.CompletedTask;
-        }
-
-        public void UpdatePlaybackState(PlaybackState playbackState)
-        {
-        }
-
-        public void UpdateViewportState(ViewportState viewportState)
-        {
-        }
-
-        public void UpdateState(WorkspaceState state)
-        {
-            State = state;
-            StateChanged?.Invoke(this, EventArgs.Empty);
-        }
     }
 
     private static ViewportViewModel CreateViewportViewModel(IWorkspaceSessionService workspaceSessionService)

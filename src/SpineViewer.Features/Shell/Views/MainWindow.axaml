@@ -3,7 +3,10 @@
     xmlns="https://github.com/avaloniaui"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:coreModels="using:SpineViewer.Core.Models"
+    xmlns:diagnosticsViews="using:SpineViewer.Features.Diagnostics.Views"
+    xmlns:inspectorViews="using:SpineViewer.Features.Inspector.Views"
     xmlns:playbackViews="using:SpineViewer.Features.Playback.Views"
+    xmlns:settingsViews="using:SpineViewer.Features.Settings.Views"
     xmlns:viewModels="using:SpineViewer.Features.Shell.ViewModels"
     xmlns:viewportViews="using:SpineViewer.Features.Viewport.Views"
     Width="1280"
@@ -188,7 +191,7 @@
                         BorderThickness="1"
                         CornerRadius="16"
                         Padding="18">
-                        <Grid RowDefinitions="*,Auto" RowSpacing="12">
+                        <Grid RowDefinitions="*,Auto,Auto" RowSpacing="12">
                             <Grid IsVisible="{Binding HasActiveSession}">
                                 <viewportViews:ViewportView DataContext="{Binding Viewport}" />
                             </Grid>
@@ -314,9 +317,11 @@
                                 <ProgressBar IsIndeterminate="True" />
                             </StackPanel>
 
-                            <playbackViews:PlaybackTransportView
-                                Grid.Row="1"
-                                DataContext="{Binding Playback}" />
+                            <playbackViews:PlaybackTransportView Grid.Row="1" DataContext="{Binding Playback}" />
+                            <playbackViews:AnimationTrackEditorView
+                                Grid.Row="2"
+                                DataContext="{Binding TrackEditor}"
+                                IsVisible="{Binding HasActiveSession}" />
                         </Grid>
                     </Border>
                 </Grid>
@@ -332,62 +337,25 @@
                 CornerRadius="18"
                 IsVisible="{Binding IsDetailsPaneVisible}"
                 Padding="18">
-                <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
-                    <StackPanel Spacing="18">
-                        <StackPanel Spacing="6">
-                            <TextBlock FontSize="20" FontWeight="SemiBold" Text="Details" />
-                            <TextBlock Classes="hint" Text="{Binding CurrentRuntimeSummary}" TextWrapping="Wrap" />
-                            <TextBlock Classes="hint" Text="{Binding CurrentViewportSummary}" TextWrapping="Wrap" />
-                        </StackPanel>
-
-                        <Border
-                            Background="#172234"
-                            CornerRadius="14"
-                            Padding="14">
-                            <StackPanel Spacing="6">
-                                <TextBlock FontWeight="SemiBold" Text="Diagnostics" />
-                                <TextBlock Classes="hint" Text="{Binding DiagnosticSummaryText}" />
-
-                                <TextBlock
-                                    Classes="hint"
-                                    IsVisible="{Binding HasNoDiagnostics}"
-                                    Text="No diagnostics are available for the current workspace."
-                                    TextWrapping="Wrap" />
-
-                                <ListBox
-                                    IsVisible="{Binding HasDiagnostics}"
-                                    ItemsSource="{Binding Diagnostics}"
-                                    MaxHeight="220"
-                                    SelectedItem="{Binding SelectedDiagnostic}">
-                                    <ListBox.ItemTemplate>
-                                        <DataTemplate x:DataType="coreModels:ViewerDiagnostic">
-                                            <StackPanel Margin="2" Spacing="2">
-                                                <TextBlock FontWeight="SemiBold" Text="{Binding Message}" TextWrapping="Wrap" />
-                                                <TextBlock Classes="hint" Text="{Binding Severity}" />
-                                            </StackPanel>
-                                        </DataTemplate>
-                                    </ListBox.ItemTemplate>
-                                </ListBox>
-                            </StackPanel>
-                        </Border>
-
-                        <Border
-                            Background="#172234"
-                            CornerRadius="14"
-                            Padding="14">
-                            <StackPanel Spacing="6">
-                                <TextBlock FontWeight="SemiBold" Text="{Binding SelectedDiagnosticTitle}" />
-                                <TextBlock TextWrapping="Wrap" Text="{Binding SelectedDiagnosticMessage}" />
-                                <TextBlock Classes="hint" Text="{Binding SelectedDiagnosticSource}" TextWrapping="Wrap" />
-                                <TextBlock
-                                    Classes="hint"
-                                    IsVisible="{Binding HasSelectedDiagnosticSuggestedAction}"
-                                    Text="{Binding SelectedDiagnosticSuggestedAction}"
-                                    TextWrapping="Wrap" />
-                            </StackPanel>
-                        </Border>
+                <Grid RowDefinitions="Auto,*" RowSpacing="12">
+                    <StackPanel Spacing="6">
+                        <TextBlock FontSize="20" FontWeight="SemiBold" Text="Details" />
+                        <TextBlock Classes="hint" Text="{Binding CurrentRuntimeSummary}" TextWrapping="Wrap" />
+                        <TextBlock Classes="hint" Text="{Binding CurrentViewportSummary}" TextWrapping="Wrap" />
                     </StackPanel>
-                </ScrollViewer>
+
+                    <TabControl Grid.Row="1">
+                        <TabItem Header="Inspector">
+                            <inspectorViews:AssetInspectorView DataContext="{Binding Inspector}" />
+                        </TabItem>
+                        <TabItem Header="Diagnostics">
+                            <diagnosticsViews:DiagnosticsPanelView DataContext="{Binding DiagnosticsPanel}" />
+                        </TabItem>
+                        <TabItem Header="Settings">
+                            <settingsViews:ViewerSettingsView DataContext="{Binding Settings}" />
+                        </TabItem>
+                    </TabControl>
+                </Grid>
             </Border>
         </Grid>
 

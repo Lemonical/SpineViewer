@@ -1,8 +1,10 @@
+using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Markup.Xaml;
 using Avalonia.Platform.Storage;
+using SpineViewer.Core.Models;
 using SpineViewer.Features.Shell.ViewModels;
 
 namespace SpineViewer.Features.Shell.Views;
@@ -16,6 +18,7 @@ public partial class MainWindow : Window
     private readonly Grid _shellContentGrid;
     private readonly Border _viewportPane;
     private readonly Border _workspacePane;
+    private bool _isApplyingPersistedWindowState;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="MainWindow"/> class.
@@ -36,6 +39,7 @@ public partial class MainWindow : Window
         DragDrop.SetAllowDrop(this, true);
         DragDrop.AddDragOverHandler(this, OnDragOver);
         DragDrop.AddDropHandler(this, OnDrop);
+        Closing += OnClosing;
         Opened += OnOpened;
         SizeChanged += OnWindowSizeChanged;
         DataContextChanged += OnDataContextChanged;
@@ -96,6 +100,7 @@ public partial class MainWindow : Window
 
     private void OnOpened(object? sender, EventArgs e)
     {
+        ApplyPersistedWindowState();
         ApplyResponsiveLayout();
     }
 
@@ -166,6 +171,54 @@ public partial class MainWindow : Window
     private void OnWindowSizeChanged(object? sender, SizeChangedEventArgs e)
     {
         ApplyResponsiveLayout();
+    }
+
+    private void ApplyPersistedWindowState()
+    {
+        if (_isApplyingPersistedWindowState ||
+            DataContext is not MainWindowViewModel viewModel ||
+            viewModel.Settings.PersistedWindowState is not ViewerWindowState persistedWindowState)
+        {
+            return;
+        }
+
+        _isApplyingPersistedWindowState = true;
+
+        try
+        {
+            Width = persistedWindowState.Width;
+            Height = persistedWindowState.Height;
+
+            if (persistedWindowState.PositionX.HasValue && persistedWindowState.PositionY.HasValue)
+            {
+                Position = new PixelPoint(persistedWindowState.PositionX.Value, persistedWindowState.PositionY.Value);
+            }
+
+            if (persistedWindowState.IsMaximized)
+            {
+                WindowState = WindowState.Maximized;
+            }
+        }
+        finally
+        {
+            _isApplyingPersistedWindowState = false;
+        }
+    }
+
+    private void OnClosing(object? sender, WindowClosingEventArgs e)
+    {
+        if (DataContext is not MainWindowViewModel viewModel)
+        {
+            return;
+        }
+
+        ViewerWindowState persistedWindowState = new(
+            Bounds.Width,
+            Bounds.Height,
+            Position.X,
+            Position.Y,
+            WindowState == WindowState.Maximized);
+        viewModel.Settings.PersistWindowStateAsync(persistedWindowState, CancellationToken.None).GetAwaiter().GetResult();
     }
 
     private static IReadOnlyList<string> GetLocalFilePaths(IEnumerable<IStorageItem>? storageItems)
