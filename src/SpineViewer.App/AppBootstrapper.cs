@@ -5,7 +5,7 @@ namespace SpineViewer.App;
 /// <summary>
 /// Owns the application's root service provider for the lifetime of the process.
 /// </summary>
-internal sealed class AppBootstrapper : IDisposable
+public sealed class AppBootstrapper : IDisposable
 {
     private static AppBootstrapper? _current;
 

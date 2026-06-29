@@ -28,9 +28,7 @@ internal static class ServiceCollectionExtensions
 {
     public static IServiceCollection AddSpineViewerApplication(this IServiceCollection services)
     {
-        string dataDirectoryPath = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-            "SpineViewer");
+        string dataDirectoryPath = GetDataDirectoryPath();
         string settingsPath = Path.Combine(dataDirectoryPath, "settings.json");
         string recentFilesPath = Path.Combine(dataDirectoryPath, "recent-files.json");
 
@@ -38,23 +36,32 @@ internal static class ServiceCollectionExtensions
             builder =>
             {
                 builder.ClearProviders();
-                builder.AddSimpleConsole(
-                    options =>
-                    {
-                        options.SingleLine = true;
-                        options.TimestampFormat = "HH:mm:ss ";
-                    });
+
+                if (!OperatingSystem.IsBrowser())
+                {
+                    builder.AddSimpleConsole(
+                        options =>
+                        {
+                            options.SingleLine = true;
+                            options.TimestampFormat = "HH:mm:ss ";
+                        });
+                }
+
                 builder.SetMinimumLevel(LogLevel.Information);
             });
 
         services.AddSingleton(typeof(IAppLogger<>), typeof(MicrosoftExtensionsAppLogger<>));
+        services.AddSingleton<IUiDispatcher, AvaloniaUiDispatcher>();
         services.AddSingleton<IApplicationStartupPipeline, ApplicationStartupPipeline>();
         services.AddSingleton<IApplicationStartupTask, LogApplicationStartupTask>();
         services.AddSingleton<IApplicationThemeService, AvaloniaApplicationThemeService>();
         services.AddSingleton<IApplicationStartupTask, ApplyViewerThemeStartupTask>();
         services.AddSingleton<IApplicationStartupTask, RestoreLastSessionStartupTask>();
         services.AddSingleton<ISettingsRepository>(_ => new JsonSettingsRepository(settingsPath));
-        services.AddSingleton<IViewerSettingsService, ViewerSettingsService>();
+        services.AddSingleton<IViewerSettingsService>(
+            serviceProvider => new ViewerSettingsService(
+                serviceProvider.GetRequiredService<ISettingsRepository>(),
+                serviceProvider.GetRequiredService<IUiDispatcher>()));
         services.AddSingleton<IRecentFilesService>(
             serviceProvider => new RecentFilesService(
                 recentFilesPath,
@@ -72,6 +79,8 @@ internal static class ServiceCollectionExtensions
         services.AddSingleton<IRenderInvalidationService, RenderInvalidationService>();
         services.AddSingleton<IViewportFrameScheduler, ViewportFrameScheduler>();
         services.AddSingleton<IViewportCameraService, ViewportCameraService>();
+        services.AddSingleton<ISpineRuntimePreviewBoundsService, SpineRuntimePreviewBoundsService>();
+        services.AddSingleton<ISpineRuntimePreviewOverlayService, SpineRuntimePreviewOverlayService>();
         services.AddSingleton<IViewportInspectionOverlayFactory, ViewportInspectionOverlayFactory>();
         services.AddSingleton<IViewportOverlaySource, GridOverlaySource>();
         services.AddSingleton<IViewportOverlaySource, SessionPlaceholderOverlaySource>();
@@ -93,8 +102,21 @@ internal static class ServiceCollectionExtensions
         services.AddTransient<DiagnosticsPanelViewModel>();
         services.AddTransient<ViewerSettingsViewModel>();
         services.AddTransient<MainWindowViewModel>();
+        services.AddTransient<MainView>();
         services.AddTransient<MainWindow>();
 
         return services;
+    }
+
+    private static string GetDataDirectoryPath()
+    {
+        if (OperatingSystem.IsBrowser())
+        {
+            return Path.Combine(AppContext.BaseDirectory, "spineviewer-data");
+        }
+
+        return Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+            "SpineViewer");
     }
 }

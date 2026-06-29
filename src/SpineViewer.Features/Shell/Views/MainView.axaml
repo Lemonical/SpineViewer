@@ -1,0 +1,7 @@
+<UserControl
+    x:Class="SpineViewer.Features.Shell.Views.MainView"
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:shellViews="using:SpineViewer.Features.Shell.Views">
+    <shellViews:MainShellView />
+</UserControl>

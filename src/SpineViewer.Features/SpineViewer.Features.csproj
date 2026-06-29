@@ -8,10 +8,23 @@
 
   <ItemGroup>
     <PackageReference Include="Avalonia" Version="12.0.4" />
+    <PackageReference Include="Avalonia.Skia" Version="12.0.4" />
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />
+    <PackageReference Include="Optris.Icons.Avalonia" Version="12.0.7" />
+    <PackageReference Include="Optris.Icons.Avalonia.FontAwesome" Version="12.0.7" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\\SpineViewer.Core\\SpineViewer.Core.csproj" GlobalPropertiesToRemove="NuGetInteractive" />
+    <ProjectReference Include="..\\SpineViewer.LegacyRuntime\\SpineViewer.LegacyRuntime.csproj" GlobalPropertiesToRemove="NuGetInteractive" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Remove="Viewport/LegacyRuntime/**/*.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <AvaloniaResource Include="..\..\assets\icons\favicon.ico" Link="Assets\favicon.ico" />
+    <AvaloniaResource Include="..\..\assets\icons\icon_dark.png" Link="Assets\icon_dark.png" />
   </ItemGroup>
 </Project>

@@ -5,7 +5,7 @@ using SpineViewer.Features.Viewport.Models;
 namespace SpineViewer.Features.Viewport.Services;
 
 /// <summary>
-/// Produces a neutral loaded-session silhouette until runtime-backed render geometry is introduced.
+/// Produces invisible session silhouettes so fit-to-view still has stable content bounds.
 /// </summary>
 public sealed class SessionPlaceholderOverlaySource : IViewportOverlaySource
 {

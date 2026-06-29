@@ -20,7 +20,8 @@ public sealed class ViewportViewModelTests
         ViewportViewModel viewModel = CreateViewModel(
             workspaceSessionService,
             renderInvalidationService,
-            frameScheduler);
+            frameScheduler,
+            new StubSpineRuntimePreviewBoundsService());
 
         viewModel.UpdateHostLayout(800.0, 600.0);
         viewModel.Activate();
@@ -44,7 +45,8 @@ public sealed class ViewportViewModelTests
         ViewportViewModel viewModel = CreateViewModel(
             workspaceSessionService,
             new StubRenderInvalidationService(),
-            new StubViewportFrameScheduler());
+            new StubViewportFrameScheduler(),
+            new StubSpineRuntimePreviewBoundsService());
 
         viewModel.ToggleGridCommand.Execute(null);
 
@@ -58,7 +60,8 @@ public sealed class ViewportViewModelTests
         ViewportViewModel viewModel = CreateViewModel(
             workspaceSessionService,
             new StubRenderInvalidationService(),
-            new StubViewportFrameScheduler());
+            new StubViewportFrameScheduler(),
+            new StubSpineRuntimePreviewBoundsService());
 
         viewModel.UpdateHostLayout(800.0, 600.0);
 
@@ -68,16 +71,40 @@ public sealed class ViewportViewModelTests
         Assert.Equal(0.0, viewportState.OffsetY);
     }
 
+    [Fact]
+    public void UpdateHostLayout_PrefersRuntimePreviewBoundsWhenAutoFitting()
+    {
+        StubWorkspaceSessionService workspaceSessionService = new(CreateWorkspaceState(isPlaying: false));
+        ViewportContentBounds previewBounds = new(200.0, 100.0, 400.0, 300.0);
+        ViewportViewModel viewModel = CreateViewModel(
+            workspaceSessionService,
+            new StubRenderInvalidationService(),
+            new StubViewportFrameScheduler(),
+            new StubSpineRuntimePreviewBoundsService(previewBounds));
+
+        viewModel.UpdateHostLayout(800.0, 600.0);
+
+        ViewportState expectedViewport = new ViewportCameraService().FitToView(
+            new ViewportState(),
+            new ViewportHostLayout(800.0, 600.0),
+            previewBounds);
+        ViewportState actualViewport = Assert.IsType<SpineProjectSession>(workspaceSessionService.State.CurrentSession).Viewport;
+
+        Assert.Equal(expectedViewport, actualViewport);
+    }
+
     private static ViewportViewModel CreateViewModel(
         StubWorkspaceSessionService workspaceSessionService,
         StubRenderInvalidationService renderInvalidationService,
-        StubViewportFrameScheduler frameScheduler)
+        StubViewportFrameScheduler frameScheduler,
+        ISpineRuntimePreviewBoundsService previewBoundsService)
     {
         return new ViewportViewModel(
             workspaceSessionService,
             renderInvalidationService,
             frameScheduler,
             new ViewportCameraService(),
+            previewBoundsService,
             CreateSceneComposer());
     }
 
@@ -181,7 +208,14 @@ public sealed class ViewportViewModelTests
 
         public WorkspaceState State { get; private set; }
 
+        public bool CanRetryLastOpen => false;
+
         public Task CloseAsync(CancellationToken cancellationToken)
+        {
+            return Task.CompletedTask;
+        }
+
+        public Task ClearRecentProjectsAsync(CancellationToken cancellationToken)
         {
             return Task.CompletedTask;
         }
@@ -207,6 +241,18 @@ public sealed class ViewportViewModelTests
         }
 
         public Task ReloadAsync(CancellationToken cancellationToken)
+        {
+            return Task.CompletedTask;
+        }
+
+        public Task RemoveRecentProjectAsync(
+            SpineProjectReference projectReference,
+            CancellationToken cancellationToken)
+        {
+            return Task.CompletedTask;
+        }
+
+        public Task RetryLastOpenAsync(CancellationToken cancellationToken)
         {
             return Task.CompletedTask;
         }
@@ -269,10 +315,36 @@ public sealed class ViewportViewModelTests
                 });
         }
 
+        public void UpdatePreferredRuntimeId(string? runtimeId)
+        {
+            SetState(
+                State with
+                {
+                    PreferredRuntimeId = string.IsNullOrWhiteSpace(runtimeId)
+                        ? null
+                        : runtimeId,
+                });
+        }
+
         private void SetState(WorkspaceState state)
         {
             State = state;
             StateChanged?.Invoke(this, EventArgs.Empty);
+        }
+    }
+
+    private sealed class StubSpineRuntimePreviewBoundsService : ISpineRuntimePreviewBoundsService
+    {
+        private readonly ViewportContentBounds? _contentBounds;
+
+        public StubSpineRuntimePreviewBoundsService(ViewportContentBounds? contentBounds = null)
+        {
+            _contentBounds = contentBounds;
+        }
+
+        public ViewportContentBounds? MeasureContentBounds(SpineProjectSession session)
+        {
+            return _contentBounds;
         }
     }
 }

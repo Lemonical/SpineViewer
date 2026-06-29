@@ -8,7 +8,7 @@ namespace SpineViewer.Features.Viewport.Contracts;
 public interface IViewportInspectionOverlayFactory
 {
     /// <summary>
-    /// Creates the baseline placeholder or attachment silhouette lines.
+    /// Creates invisible silhouette lines that preserve fit-to-view bounds for the current session.
     /// </summary>
     IReadOnlyList<ViewportOverlayLine> CreatePlaceholderLines(ViewportOverlayContext context);
 

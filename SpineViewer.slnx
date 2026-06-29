@@ -3,9 +3,12 @@
     <File Path="README.md" />
   </Folder>
   <Project Path="src/SpineViewer.App/SpineViewer.App.csproj" />
+  <Project Path="src/SpineViewer.Browser/SpineViewer.Browser.csproj" />
   <Project Path="src/SpineViewer.Core/SpineViewer.Core.csproj" />
+  <Project Path="src/SpineViewer.Desktop/SpineViewer.Desktop.csproj" />
   <Project Path="src/SpineViewer.Features/SpineViewer.Features.csproj" />
   <Project Path="src/SpineViewer.Infrastructure/SpineViewer.Infrastructure.csproj" />
+  <Project Path="src/SpineViewer.LegacyRuntime/SpineViewer.LegacyRuntime.csproj" />
   <Project Path="tests/SpineViewer.Core.Tests/SpineViewer.Core.Tests.csproj" />
   <Project Path="tests/SpineViewer.Features.Tests/SpineViewer.Features.Tests.csproj" />
   <Project Path="tests/SpineViewer.Infrastructure.Tests/SpineViewer.Infrastructure.Tests.csproj" />

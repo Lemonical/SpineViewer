@@ -7,7 +7,7 @@ namespace SpineViewer.App;
 /// <summary>
 /// Executes a non-UI smoke test for the composition root.
 /// </summary>
-internal static class SmokeTestRunner
+public static class SmokeTestRunner
 {
     /// <summary>
     /// Runs the composition root without starting a desktop lifetime.

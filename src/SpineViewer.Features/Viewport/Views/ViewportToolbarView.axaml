@@ -2,47 +2,46 @@
     x:Class="SpineViewer.Features.Viewport.Views.ViewportToolbarView"
     xmlns="https://github.com/avaloniaui"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:i="https://github.com/projektanker/icons.avalonia"
     xmlns:viewModels="using:SpineViewer.Features.Viewport.ViewModels"
     x:DataType="viewModels:ViewportViewModel">
     <Border
-        Background="#101A29"
-        BorderBrush="#263547"
-        BorderThickness="1"
-        CornerRadius="16"
-        Padding="12">
-        <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto" RowSpacing="10">
-            <WrapPanel Orientation="Horizontal">
-                <Button Command="{Binding FitToViewCommand}" Content="Fit" MinWidth="72" />
-                <Button Command="{Binding ResetCameraCommand}" Content="Reset" Margin="10,0,0,0" MinWidth="72" />
-                <Button Command="{Binding ZoomOutCommand}" Content="-" Margin="10,0,0,0" MinWidth="44" />
-                <Button Command="{Binding ZoomInCommand}" Content="+" Margin="10,0,0,0" MinWidth="44" />
+        Background="{DynamicResource SurfaceBase}"
+        BorderBrush="{DynamicResource LineSubtle}"
+        BorderThickness="0,0,0,1"
+        Padding="8,5">
+        <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
+            <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
+                <Button Classes="toolbar" Command="{Binding FitToViewCommand}" Content="Fit" i:Attached.Icon="fa-solid fa-expand" />
+                <Button Classes="toolbar" Command="{Binding ResetCameraCommand}" Content="Reset" i:Attached.Icon="fa-solid fa-crosshairs" />
+                <Button Classes="toolbar" Command="{Binding ZoomOutCommand}" Content="Zoom Out" i:Attached.Icon="fa-solid fa-magnifying-glass-minus" />
+                <Button Classes="toolbar" Command="{Binding ZoomInCommand}" Content="Zoom In" i:Attached.Icon="fa-solid fa-magnifying-glass-plus" />
+                <TextBlock
+                    Classes="mono"
+                    Margin="4,0"
+                    Text="{Binding ZoomSummaryText}"
+                    VerticalAlignment="Center" />
 
-                <CheckBox Content="Grid" IsChecked="{Binding IsGridVisible}" Margin="16,0,0,0" VerticalAlignment="Center" />
-                <CheckBox Content="Origin" IsChecked="{Binding IsOriginVisible}" Margin="12,0,0,0" VerticalAlignment="Center" />
-                <CheckBox Content="Bones" IsChecked="{Binding IsBonesVisible}" Margin="12,0,0,0" VerticalAlignment="Center" />
-                <CheckBox Content="Bounds" IsChecked="{Binding IsBoundsVisible}" Margin="12,0,0,0" VerticalAlignment="Center" />
-                <CheckBox Content="Mesh" IsChecked="{Binding IsMeshWireframeVisible}" Margin="12,0,0,0" VerticalAlignment="Center" />
-                <CheckBox Content="Slots" IsChecked="{Binding IsSlotOutlinesVisible}" Margin="12,0,0,0" VerticalAlignment="Center" />
-                <CheckBox Content="Labels" IsChecked="{Binding IsLabelsVisible}" Margin="12,0,0,0" VerticalAlignment="Center" />
-                <CheckBox Content="Missing" IsChecked="{Binding IsMissingResourceIndicatorsVisible}" Margin="12,0,0,0" VerticalAlignment="Center" />
-                <CheckBox Content="Warnings" IsChecked="{Binding IsUnsupportedFeatureIndicatorsVisible}" Margin="12,0,0,0" VerticalAlignment="Center" />
-            </WrapPanel>
+                <Border Classes="divider" Height="16" Margin="2,0" />
 
-            <StackPanel Grid.Column="1" HorizontalAlignment="Right" Spacing="4">
+                <ToggleButton Classes="pill" Content="Grid" IsChecked="{Binding IsGridVisible}" />
+                <ToggleButton Classes="pill" Content="Origin" IsChecked="{Binding IsOriginVisible}" />
+                <ToggleButton Classes="pill" Content="Bones" IsChecked="{Binding IsBonesVisible}" />
+                <ToggleButton Classes="pill" Content="Bounds" IsChecked="{Binding IsBoundsVisible}" />
+                <ToggleButton Classes="pill" Content="Mesh" IsChecked="{Binding IsMeshWireframeVisible}" />
+                <ToggleButton Classes="pill" Content="Slots" IsChecked="{Binding IsSlotOutlinesVisible}" />
+                <ToggleButton Classes="pill" Content="Labels" IsChecked="{Binding IsLabelsVisible}" />
+                <ToggleButton Classes="pill" Content="Missing" IsChecked="{Binding IsMissingResourceIndicatorsVisible}" />
+                <ToggleButton Classes="pill" Content="Warn" IsChecked="{Binding IsUnsupportedFeatureIndicatorsVisible}" />
+
+                <Border Classes="divider" Height="16" Margin="2,0" />
+
                 <ComboBox
-                    HorizontalAlignment="Right"
                     ItemsSource="{Binding BackgroundOptions}"
-                    MinWidth="130"
-                    SelectedItem="{Binding SelectedBackgroundStyle}" />
-                <TextBlock HorizontalAlignment="Right" Text="{Binding ZoomSummaryText}" />
+                    MinWidth="120"
+                    SelectedItem="{Binding SelectedBackgroundStyle}"
+                    VerticalAlignment="Center" />
             </StackPanel>
-
-            <TextBlock
-                Grid.Row="1"
-                Grid.ColumnSpan="2"
-                Classes="hint"
-                Text="{Binding InteractionHintText}"
-                TextWrapping="Wrap" />
-        </Grid>
+        </ScrollViewer>
     </Border>
 </UserControl>

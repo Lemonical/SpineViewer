@@ -1,7 +1,11 @@
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Media;
+using Avalonia.Rendering.SceneGraph;
+using Avalonia.Skia;
+using SkiaSharp;
 using System.Globalization;
+using SpineViewer.Features.Viewport.Rendering;
 using SpineViewer.Features.Viewport.Models;
 
 namespace SpineViewer.Features.Viewport.Views;
@@ -11,6 +15,8 @@ namespace SpineViewer.Features.Viewport.Views;
 /// </summary>
 public sealed class SpineRenderHost : Control
 {
+    private readonly SpineRuntimePreviewRenderer _runtimePreviewRenderer = new();
+
     /// <summary>
     /// Identifies the <see cref="Scene"/> property.
     /// </summary>
@@ -28,6 +34,7 @@ public sealed class SpineRenderHost : Control
     public SpineRenderHost()
     {
         ClipToBounds = true;
+        DetachedFromVisualTree += OnDetachedFromVisualTree;
     }
 
     /// <summary>
@@ -48,6 +55,11 @@ public sealed class SpineRenderHost : Control
         Rect bounds = new(0.0, 0.0, Bounds.Width, Bounds.Height);
 
         context.FillRectangle(new SolidColorBrush(scene.BackgroundColor), bounds);
+
+        if (scene.PreviewSession is not null)
+        {
+            context.Custom(new SpineRuntimeDrawOperation(_runtimePreviewRenderer, bounds, scene));
+        }
 
         foreach (ViewportOverlayLine worldLine in scene.WorldLines)
         {
@@ -80,5 +92,62 @@ public sealed class SpineRenderHost : Control
         return new Point(
             transform.TranslateX + (worldX * transform.Scale),
             transform.TranslateY + (worldY * transform.Scale));
+    }
+
+    private void OnDetachedFromVisualTree(object? sender, VisualTreeAttachmentEventArgs e)
+    {
+        _runtimePreviewRenderer.Dispose();
+    }
+
+    private sealed class SpineRuntimeDrawOperation : ICustomDrawOperation
+    {
+        private readonly Rect _bounds;
+        private readonly SpineRuntimePreviewRenderer _runtimePreviewRenderer;
+        private readonly ViewportRenderScene _scene;
+
+        public SpineRuntimeDrawOperation(
+            SpineRuntimePreviewRenderer runtimePreviewRenderer,
+            Rect bounds,
+            ViewportRenderScene scene)
+        {
+            _runtimePreviewRenderer = runtimePreviewRenderer ?? throw new ArgumentNullException(nameof(runtimePreviewRenderer));
+            _bounds = bounds;
+            _scene = scene ?? throw new ArgumentNullException(nameof(scene));
+        }
+
+        public Rect Bounds => _bounds;
+
+        public bool HitTest(Point p)
+        {
+            return _bounds.Contains(p);
+        }
+
+        public bool Equals(ICustomDrawOperation? other)
+        {
+            return false;
+        }
+
+        public void Render(ImmediateDrawingContext context)
+        {
+            if (_scene.PreviewSession is null)
+            {
+                return;
+            }
+
+            if (context.TryGetFeature<ISkiaSharpApiLeaseFeature>() is not ISkiaSharpApiLeaseFeature leaseFeature)
+            {
+                return;
+            }
+
+            using ISkiaSharpApiLease lease = leaseFeature.Lease();
+            _runtimePreviewRenderer.TryRender(
+                lease.SkCanvas,
+                _scene.PreviewSession,
+                _scene.Transform);
+        }
+
+        public void Dispose()
+        {
+        }
     }
 }

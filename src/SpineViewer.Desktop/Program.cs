@@ -1,9 +1,10 @@
 using Avalonia;
+using SpineViewer.App;
 
-namespace SpineViewer.App;
+namespace SpineViewer.Desktop;
 
 /// <summary>
-/// Provides the process entrypoint for the application host.
+/// Provides the desktop process entrypoint for the application host.
 /// </summary>
 internal static class Program
 {
@@ -30,7 +31,7 @@ internal static class Program
     /// <returns>The configured Avalonia application builder.</returns>
     public static AppBuilder BuildAvaloniaApp()
     {
-        return AppBuilder.Configure<App>()
+        return AppBuilder.Configure<SpineViewer.App.App>()
             .UsePlatformDetect()
             .WithInterFont();
     }

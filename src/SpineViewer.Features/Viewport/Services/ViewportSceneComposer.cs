@@ -56,7 +56,8 @@ public sealed class ViewportSceneComposer : IViewportSceneComposer
             overlayText,
             frameVersion,
             workspaceState.CurrentSession is not null,
-            workspaceState.CurrentSession?.Project.DisplayName);
+            workspaceState.CurrentSession?.Project.DisplayName,
+            workspaceState.CurrentSession);
     }
 
     private static Color SelectBackgroundColor(WorkspaceState workspaceState)
@@ -73,10 +74,11 @@ public sealed class ViewportSceneComposer : IViewportSceneComposer
 
         return workspaceState.CurrentSession.Viewport.BackgroundStyle switch
         {
-            ViewportBackgroundStyle.Studio => Color.FromRgb(0x10, 0x15, 0x1F),
-            ViewportBackgroundStyle.Slate => Color.FromRgb(0x1B, 0x24, 0x33),
-            ViewportBackgroundStyle.Blueprint => Color.FromRgb(0x0D, 0x24, 0x38),
+            ViewportBackgroundStyle.Black => Color.FromRgb(0x10, 0x15, 0x1F),
+            ViewportBackgroundStyle.Red => Color.FromRgb(0x4A, 0x18, 0x18),
+            ViewportBackgroundStyle.Green => Color.FromRgb(0x14, 0x33, 0x22),
             ViewportBackgroundStyle.Paper => Color.FromRgb(0xE7, 0xE0, 0xD3),
+            ViewportBackgroundStyle.Blue => Color.FromRgb(0x0D, 0x24, 0x38),
             _ => Color.FromRgb(0x10, 0x15, 0x1F),
         };
     }

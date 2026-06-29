@@ -16,6 +16,7 @@ public sealed partial class ViewportViewModel : ObservableObject, IDisposable
     private readonly IRenderInvalidationService _renderInvalidationService;
     private readonly IViewportFrameScheduler _frameScheduler;
     private readonly IViewportCameraService _cameraService;
+    private readonly ISpineRuntimePreviewBoundsService _previewBoundsService;
     private readonly IViewportSceneComposer _sceneComposer;
     private readonly IWorkspaceSessionService _workspaceSessionService;
     private readonly ViewportBackgroundStyle[] _backgroundOptions =
@@ -38,12 +39,14 @@ public sealed partial class ViewportViewModel : ObservableObject, IDisposable
     /// <param name="renderInvalidationService">The render invalidation service used to define redraw flow.</param>
     /// <param name="frameScheduler">The recurring frame scheduler used when playback is active.</param>
     /// <param name="cameraService">The camera service used for camera-state mutations.</param>
+    /// <param name="previewBoundsService">The service used to measure runtime preview bounds for fit operations.</param>
     /// <param name="sceneComposer">The scene composer used to build immutable render snapshots.</param>
     public ViewportViewModel(
         IWorkspaceSessionService workspaceSessionService,
         IRenderInvalidationService renderInvalidationService,
         IViewportFrameScheduler frameScheduler,
         IViewportCameraService cameraService,
+        ISpineRuntimePreviewBoundsService previewBoundsService,
         IViewportSceneComposer sceneComposer)
     {
         _workspaceSessionService =
@@ -52,6 +55,7 @@ public sealed partial class ViewportViewModel : ObservableObject, IDisposable
             renderInvalidationService ?? throw new ArgumentNullException(nameof(renderInvalidationService));
         _frameScheduler = frameScheduler ?? throw new ArgumentNullException(nameof(frameScheduler));
         _cameraService = cameraService ?? throw new ArgumentNullException(nameof(cameraService));
+        _previewBoundsService = previewBoundsService ?? throw new ArgumentNullException(nameof(previewBoundsService));
         _sceneComposer = sceneComposer ?? throw new ArgumentNullException(nameof(sceneComposer));
 
         _lastWorkspaceState = _workspaceSessionService.State;
@@ -439,12 +443,15 @@ public sealed partial class ViewportViewModel : ObservableObject, IDisposable
     [RelayCommand(CanExecute = nameof(CanAdjustSessionViewport))]
     private void FitToView()
     {
-        if (RenderScene.ContentBounds is null)
+        ViewportContentBounds? contentBounds = ResolvePreferredContentBounds(
+            _workspaceSessionService.State.CurrentSession,
+            RenderScene);
+        if (contentBounds is null)
         {
             return;
         }
 
-        ApplyViewportState(_cameraService.FitToView(_currentViewportState, _hostLayout, RenderScene.ContentBounds));
+        ApplyViewportState(_cameraService.FitToView(_currentViewportState, _hostLayout, contentBounds));
     }
 
     [RelayCommand(CanExecute = nameof(CanAdjustSessionViewport))]
@@ -678,7 +685,8 @@ public sealed partial class ViewportViewModel : ObservableObject, IDisposable
         }
 
         ViewportRenderScene previewScene = _sceneComposer.Compose(currentState, _hostLayout, _frameVersion);
-        if (previewScene.ContentBounds is null)
+        ViewportContentBounds? contentBounds = ResolvePreferredContentBounds(currentSession, previewScene);
+        if (contentBounds is null)
         {
             return false;
         }
@@ -686,7 +694,7 @@ public sealed partial class ViewportViewModel : ObservableObject, IDisposable
         ViewportState fittedViewportState = _cameraService.FitToView(
             currentSession.Viewport,
             _hostLayout,
-            previewScene.ContentBounds);
+            contentBounds);
 
         if (fittedViewportState == currentSession.Viewport)
         {
@@ -748,5 +756,21 @@ public sealed partial class ViewportViewModel : ObservableObject, IDisposable
         return viewportState.Zoom == 1.0 &&
                viewportState.OffsetX == 0.0 &&
                viewportState.OffsetY == 0.0;
+    }
+
+    private ViewportContentBounds? ResolvePreferredContentBounds(
+        SpineProjectSession? session,
+        ViewportRenderScene renderScene)
+    {
+        if (session is not null)
+        {
+            ViewportContentBounds? previewBounds = _previewBoundsService.MeasureContentBounds(session);
+            if (previewBounds is not null)
+            {
+                return previewBounds;
+            }
+        }
+
+        return renderScene.ContentBounds;
     }
 }

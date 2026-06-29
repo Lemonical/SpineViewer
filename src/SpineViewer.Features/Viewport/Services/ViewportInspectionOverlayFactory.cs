@@ -2,6 +2,7 @@ using Avalonia.Media;
 using SpineViewer.Core.Models;
 using SpineViewer.Features.Viewport.Contracts;
 using SpineViewer.Features.Viewport.Models;
+using SpineViewer.Features.Viewport.Rendering;
 
 namespace SpineViewer.Features.Viewport.Services;
 
@@ -10,7 +11,7 @@ namespace SpineViewer.Features.Viewport.Services;
 /// </summary>
 public sealed class ViewportInspectionOverlayFactory : IViewportInspectionOverlayFactory
 {
-    private static readonly Color PlaceholderColor = Color.FromArgb(0xAA, 0x8B, 0xC1, 0xD6);
+    private static readonly Color PlaceholderColor = Color.FromArgb(0x00, 0x8B, 0xC1, 0xD6);
     private static readonly Color BoneColor = Color.FromRgb(0xF2, 0xCC, 0x8F);
     private static readonly Color BoundsColor = Color.FromRgb(0x9A, 0xD1, 0x8B);
     private static readonly Color MeshColor = Color.FromRgb(0xF4, 0x7F, 0x6B);
@@ -18,6 +19,25 @@ public sealed class ViewportInspectionOverlayFactory : IViewportInspectionOverla
     private static readonly Color LabelColor = Color.FromRgb(0xE7, 0xE0, 0xD3);
     private static readonly Color MissingColor = Color.FromRgb(0xFF, 0xC8, 0x5C);
     private static readonly Color UnsupportedColor = Color.FromRgb(0xFF, 0x8C, 0x7A);
+    private readonly ISpineRuntimePreviewOverlayService _runtimePreviewOverlayService;
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="ViewportInspectionOverlayFactory"/> class.
+    /// </summary>
+    public ViewportInspectionOverlayFactory()
+        : this(new NullSpineRuntimePreviewOverlayService())
+    {
+    }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="ViewportInspectionOverlayFactory"/> class.
+    /// </summary>
+    /// <param name="runtimePreviewOverlayService">The runtime-backed overlay snapshot service.</param>
+    public ViewportInspectionOverlayFactory(ISpineRuntimePreviewOverlayService runtimePreviewOverlayService)
+    {
+        _runtimePreviewOverlayService =
+            runtimePreviewOverlayService ?? throw new ArgumentNullException(nameof(runtimePreviewOverlayService));
+    }
 
     /// <inheritdoc />
     public IReadOnlyList<ViewportOverlayLine> CreatePlaceholderLines(ViewportOverlayContext context)
@@ -27,6 +47,15 @@ public sealed class ViewportInspectionOverlayFactory : IViewportInspectionOverla
         if (!context.HasActiveSession)
         {
             return Array.Empty<ViewportOverlayLine>();
+        }
+
+        SpineRuntimePreviewOverlaySnapshot? runtimeSnapshot = TryCaptureRuntimeSnapshot(context);
+        if (runtimeSnapshot?.ContentBounds is ViewportContentBounds runtimeContentBounds)
+        {
+            return RuntimePreviewOverlayPalette
+                .CreateBoundsLines(runtimeContentBounds)
+                .Select(static line => line with { Color = PlaceholderColor })
+                .ToArray();
         }
 
         Projection projection = Project(context);
@@ -57,6 +86,12 @@ public sealed class ViewportInspectionOverlayFactory : IViewportInspectionOverla
     {
         ArgumentNullException.ThrowIfNull(context);
 
+        SpineRuntimePreviewOverlaySnapshot? runtimeSnapshot = TryCaptureRuntimeSnapshot(context);
+        if (runtimeSnapshot is not null)
+        {
+            return runtimeSnapshot.BoneLines;
+        }
+
         Projection projection = Project(context);
         if (projection.Bones.Count == 0)
         {
@@ -80,6 +115,12 @@ public sealed class ViewportInspectionOverlayFactory : IViewportInspectionOverla
     {
         ArgumentNullException.ThrowIfNull(context);
 
+        SpineRuntimePreviewOverlaySnapshot? runtimeSnapshot = TryCaptureRuntimeSnapshot(context);
+        if (runtimeSnapshot is not null)
+        {
+            return runtimeSnapshot.BoundsLines;
+        }
+
         Projection projection = Project(context);
         if (projection.Bounds is null)
         {
@@ -101,6 +142,12 @@ public sealed class ViewportInspectionOverlayFactory : IViewportInspectionOverla
     {
         ArgumentNullException.ThrowIfNull(context);
 
+        SpineRuntimePreviewOverlaySnapshot? runtimeSnapshot = TryCaptureRuntimeSnapshot(context);
+        if (runtimeSnapshot is not null)
+        {
+            return runtimeSnapshot.MeshLines;
+        }
+
         Projection projection = Project(context);
         List<ViewportOverlayLine> lines = [];
 
@@ -119,6 +166,12 @@ public sealed class ViewportInspectionOverlayFactory : IViewportInspectionOverla
     {
         ArgumentNullException.ThrowIfNull(context);
 
+        SpineRuntimePreviewOverlaySnapshot? runtimeSnapshot = TryCaptureRuntimeSnapshot(context);
+        if (runtimeSnapshot is not null)
+        {
+            return runtimeSnapshot.SlotOutlineLines;
+        }
+
         Projection projection = Project(context);
         List<ViewportOverlayLine> lines = [];
 
@@ -134,6 +187,12 @@ public sealed class ViewportInspectionOverlayFactory : IViewportInspectionOverla
     public IReadOnlyList<ViewportOverlayText> CreateLabelText(ViewportOverlayContext context)
     {
         ArgumentNullException.ThrowIfNull(context);
+
+        SpineRuntimePreviewOverlaySnapshot? runtimeSnapshot = TryCaptureRuntimeSnapshot(context);
+        if (runtimeSnapshot is not null)
+        {
+            return runtimeSnapshot.LabelText;
+        }
 
         Projection projection = Project(context);
         List<ViewportOverlayText> text = [];
@@ -204,6 +263,13 @@ public sealed class ViewportInspectionOverlayFactory : IViewportInspectionOverla
             new ViewportOverlayLine(attachment.RightBottom.X, attachment.RightBottom.Y, attachment.LeftBottom.X, attachment.LeftBottom.Y, color, thickness, includeInBounds),
             new ViewportOverlayLine(attachment.LeftBottom.X, attachment.LeftBottom.Y, attachment.LeftTop.X, attachment.LeftTop.Y, color, thickness, includeInBounds),
         ];
+    }
+
+    private SpineRuntimePreviewOverlaySnapshot? TryCaptureRuntimeSnapshot(ViewportOverlayContext context)
+    {
+        return context.CurrentSession is null
+            ? null
+            : _runtimePreviewOverlayService.CaptureOverlaySnapshot(context.CurrentSession);
     }
 
     private static Projection Project(ViewportOverlayContext context)
@@ -449,5 +515,13 @@ public sealed class ViewportInspectionOverlayFactory : IViewportInspectionOverla
             Array.Empty<BonePose>(),
             Array.Empty<AttachmentPose>(),
             null);
+    }
+
+    private sealed class NullSpineRuntimePreviewOverlayService : ISpineRuntimePreviewOverlayService
+    {
+        public SpineRuntimePreviewOverlaySnapshot? CaptureOverlaySnapshot(SpineProjectSession session)
+        {
+            return null;
+        }
     }
 }

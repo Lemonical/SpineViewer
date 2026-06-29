@@ -1,4 +1,5 @@
 using Avalonia.Media;
+using SpineViewer.Core.Models;
 
 namespace SpineViewer.Features.Viewport.Models;
 
@@ -30,7 +31,38 @@ public sealed record ViewportRenderScene
             Array.Empty<ViewportOverlayText>(),
             frameVersion,
             hasActiveSession,
-            sessionName)
+            sessionName,
+            null)
+    {
+    }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="ViewportRenderScene"/> class.
+    /// </summary>
+    /// <param name="backgroundColor">The scene background color.</param>
+    /// <param name="transform">The camera transform that projects world-space geometry into screen space.</param>
+    /// <param name="worldLines">The world-space overlay lines to draw for this frame.</param>
+    /// <param name="frameVersion">The monotonically increasing frame version.</param>
+    /// <param name="hasActiveSession">Indicates whether the scene represents an active session.</param>
+    /// <param name="sessionName">The active session display name, if any.</param>
+    /// <param name="previewSession">The active session used for real Spine runtime rendering, if any.</param>
+    public ViewportRenderScene(
+        Color backgroundColor,
+        ViewportRenderTransform transform,
+        IEnumerable<ViewportOverlayLine> worldLines,
+        long frameVersion,
+        bool hasActiveSession,
+        string? sessionName,
+        SpineProjectSession? previewSession)
+        : this(
+            backgroundColor,
+            transform,
+            worldLines,
+            Array.Empty<ViewportOverlayText>(),
+            frameVersion,
+            hasActiveSession,
+            sessionName,
+            previewSession)
     {
     }
 
@@ -52,6 +84,38 @@ public sealed record ViewportRenderScene
         long frameVersion,
         bool hasActiveSession,
         string? sessionName)
+        : this(
+            backgroundColor,
+            transform,
+            worldLines,
+            overlayText,
+            frameVersion,
+            hasActiveSession,
+            sessionName,
+            null)
+    {
+    }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="ViewportRenderScene"/> class.
+    /// </summary>
+    /// <param name="backgroundColor">The scene background color.</param>
+    /// <param name="transform">The camera transform that projects world-space geometry into screen space.</param>
+    /// <param name="worldLines">The world-space overlay lines to draw for this frame.</param>
+    /// <param name="overlayText">The text overlays to draw for this frame.</param>
+    /// <param name="frameVersion">The monotonically increasing frame version.</param>
+    /// <param name="hasActiveSession">Indicates whether the scene represents an active session.</param>
+    /// <param name="sessionName">The active session display name, if any.</param>
+    /// <param name="previewSession">The active session used for real Spine runtime rendering, if any.</param>
+    public ViewportRenderScene(
+        Color backgroundColor,
+        ViewportRenderTransform transform,
+        IEnumerable<ViewportOverlayLine> worldLines,
+        IEnumerable<ViewportOverlayText> overlayText,
+        long frameVersion,
+        bool hasActiveSession,
+        string? sessionName,
+        SpineProjectSession? previewSession)
     {
         if (frameVersion < 0)
         {
@@ -65,6 +129,7 @@ public sealed record ViewportRenderScene
         FrameVersion = frameVersion;
         HasActiveSession = hasActiveSession;
         SessionName = sessionName ?? string.Empty;
+        PreviewSession = previewSession;
         ContentBounds = TryCreateContentBounds(WorldLines);
     }
 
@@ -119,6 +184,11 @@ public sealed record ViewportRenderScene
     /// Gets the active session display name, if any.
     /// </summary>
     public string SessionName { get; init; }
+
+    /// <summary>
+    /// Gets the active session used for real Spine runtime rendering, if any.
+    /// </summary>
+    public SpineProjectSession? PreviewSession { get; init; }
 
     private static ViewportContentBounds? TryCreateContentBounds(
         IReadOnlyList<ViewportOverlayLine> worldLines)
