@@ -1,0 +1,92 @@
+name: Deploy Browser App
+
+on:
+  push:
+    branches:
+      - v2
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+env:
+  DOTNET_NOLOGO: true
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v5
+
+      - name: Set up .NET 10 SDK
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@v5
+
+      - name: Publish browser host
+        run: dotnet publish src/SpineViewer.Browser/SpineViewer.Browser.csproj --configuration Release -p:PublishDir="${{ runner.temp }}/browser-publish/"
+
+      - name: Stage GitHub Pages artifact
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          publish_root="${{ runner.temp }}/browser-publish"
+          site_root="$publish_root"
+
+          if [ -f "$publish_root/wwwroot/index.html" ]; then
+            site_root="$publish_root/wwwroot"
+          fi
+
+          if [ ! -f "$site_root/index.html" ]; then
+            echo "Expected index.html under $publish_root or $publish_root/wwwroot." >&2
+            exit 1
+          fi
+
+          required_files=(
+            "index.html"
+            "app.css"
+            "main.js"
+            "_framework/avalonia.js"
+          )
+
+          for required_file in "${required_files[@]}"; do
+            if [ ! -f "$site_root/$required_file" ]; then
+              echo "Expected $required_file under $site_root." >&2
+              exit 1
+            fi
+          done
+
+          artifact_root="${{ runner.temp }}/github-pages-site"
+          mkdir -p "$artifact_root"
+          cp -R "$site_root"/. "$artifact_root/"
+          touch "$artifact_root/.nojekyll"
+
+      - name: Upload GitHub Pages artifact
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: ${{ runner.temp }}/github-pages-site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

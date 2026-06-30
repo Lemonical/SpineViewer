@@ -1,0 +1,96 @@
+name: Release Desktop Builds
+
+on:
+  push:
+    tags:
+      - v*
+
+permissions:
+  contents: write
+
+env:
+  DOTNET_NOLOGO: true
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
+
+jobs:
+  build:
+    name: Build ${{ matrix.asset_stem }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            rid: linux-x64
+            asset_stem: SpineViewer-linux-x64
+            archive_extension: tar.gz
+          - os: windows-latest
+            rid: win-x64
+            asset_stem: SpineViewer-win-x64
+            archive_extension: zip
+          - os: macos-latest
+            rid: osx-arm64
+            asset_stem: SpineViewer-osx-arm64
+            archive_extension: tar.gz
+          - os: macos-latest
+            rid: osx-x64
+            asset_stem: SpineViewer-osx-x64
+            archive_extension: tar.gz
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v5
+
+      - name: Set up .NET 10 SDK
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Publish desktop host
+        run: dotnet publish src/SpineViewer.Desktop/SpineViewer.Desktop.csproj --configuration Release --runtime ${{ matrix.rid }} --self-contained true -p:PublishDir="${{ github.workspace }}/artifacts/publish/${{ matrix.asset_stem }}/"
+
+      - name: Create tarball artifact
+        if: matrix.archive_extension == 'tar.gz'
+        shell: bash
+        run: |
+          set -euo pipefail
+          tar -C "${{ github.workspace }}/artifacts/publish" -czf "${{ github.workspace }}/artifacts/${{ matrix.asset_stem }}-${{ github.ref_name }}.tar.gz" "${{ matrix.asset_stem }}"
+
+      - name: Create zip artifact
+        if: matrix.archive_extension == 'zip'
+        shell: pwsh
+        run: |
+          Compress-Archive -Path "${{ github.workspace }}/artifacts/publish/${{ matrix.asset_stem }}" -DestinationPath "${{ github.workspace }}/artifacts/${{ matrix.asset_stem }}-${{ github.ref_name }}.zip"
+
+      - name: Upload packaged artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.asset_stem }}
+          path: ${{ github.workspace }}/artifacts/${{ matrix.asset_stem }}-${{ github.ref_name }}.${{ matrix.archive_extension }}
+          if-no-files-found: error
+
+  publish-release:
+    name: Publish GitHub Release
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Download packaged artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: ${{ github.workspace }}/artifacts/release
+          merge-multiple: true
+
+      - name: Create or update GitHub release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          tag="${GITHUB_REF_NAME}"
+
+          if gh release view "$tag" >/dev/null 2>&1; then
+            gh release upload "$tag" "${{ github.workspace }}/artifacts/release/"* --clobber
+          else
+            gh release create "$tag" "${{ github.workspace }}/artifacts/release/"* --generate-notes --title "$tag"
+          fi
