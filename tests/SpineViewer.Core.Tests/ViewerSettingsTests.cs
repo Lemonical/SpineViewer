@@ -19,6 +19,7 @@ public sealed class ViewerSettingsTests
         Assert.Equal(1.0, settings.DefaultPlaybackSpeed);
         Assert.Equal(10, settings.RecentFilesLimit);
         Assert.True(settings.RestoreLastSessionOnStartup);
+        Assert.True(settings.UseCustomTitleBar);
         Assert.Null(settings.LastProjectReference);
     }
 

@@ -1,0 +1,449 @@
+<Styles
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <!--
+        SpineViewer "Studio" theme.
+        Centralized design tokens and control styling for the redesigned shell.
+        Palette and structure are derived from the Prototype (Option 1A: Studio, amber accent).
+    -->
+    <Styles.Resources>
+        <!-- Surfaces -->
+        <SolidColorBrush x:Key="SurfaceBase" Color="#151312" />
+        <SolidColorBrush x:Key="SurfaceViewport" Color="#0E0D0C" />
+        <SolidColorBrush x:Key="SurfaceCard" Color="#1D1B18" />
+        <SolidColorBrush x:Key="SurfaceCardHover" Color="#262321" />
+        <SolidColorBrush x:Key="SurfaceFloating" Color="#1A1817" />
+
+        <!-- Lines -->
+        <SolidColorBrush x:Key="LineSubtle" Color="#252220" />
+        <SolidColorBrush x:Key="LineStrong" Color="#302C29" />
+
+        <!-- Text -->
+        <SolidColorBrush x:Key="TextPrimary" Color="#EDE9E3" />
+        <SolidColorBrush x:Key="TextSecondary" Color="#9A9189" />
+        <SolidColorBrush x:Key="TextMuted" Color="#6B6560" />
+        <SolidColorBrush x:Key="TextFaint" Color="#4A4640" />
+
+        <!-- Accent -->
+        <SolidColorBrush x:Key="Accent" Color="#D4915A" />
+        <SolidColorBrush x:Key="AccentHover" Color="#DFA46E" />
+        <SolidColorBrush x:Key="AccentSoft" Color="#33D4915A" />
+        <SolidColorBrush x:Key="AccentWash" Color="#1FD4915A" />
+
+        <!-- Status -->
+        <SolidColorBrush x:Key="Success" Color="#5AB88A" />
+        <SolidColorBrush x:Key="SuccessWash" Color="#1F5AB88A" />
+        <SolidColorBrush x:Key="Danger" Color="#D46A5A" />
+        <SolidColorBrush x:Key="Warning" Color="#D4915A" />
+
+        <FontFamily x:Key="MonoFont">JetBrains Mono,Cascadia Code,Consolas,monospace</FontFamily>
+    </Styles.Resources>
+
+    <!-- ============================== Window / base text ============================== -->
+    <Style Selector="Window">
+        <Setter Property="Background" Value="{StaticResource SurfaceBase}" />
+        <Setter Property="Foreground" Value="{StaticResource TextPrimary}" />
+        <Setter Property="FontSize" Value="13" />
+    </Style>
+
+    <Style Selector="TextBlock">
+        <Setter Property="Foreground" Value="{StaticResource TextPrimary}" />
+    </Style>
+
+    <Style Selector="TextBlock.hint">
+        <Setter Property="Foreground" Value="{StaticResource TextSecondary}" />
+        <Setter Property="FontSize" Value="11" />
+    </Style>
+
+    <!-- Small uppercase section header -->
+    <Style Selector="TextBlock.section">
+        <Setter Property="Foreground" Value="{StaticResource TextMuted}" />
+        <Setter Property="FontSize" Value="10" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="LetterSpacing" Value="0.8" />
+    </Style>
+
+    <Style Selector="TextBlock.mono">
+        <Setter Property="FontFamily" Value="{StaticResource MonoFont}" />
+        <Setter Property="Foreground" Value="{StaticResource TextSecondary}" />
+        <Setter Property="FontSize" Value="11" />
+    </Style>
+
+    <Style Selector="TextBlock.brand">
+        <Setter Property="Foreground" Value="{StaticResource Accent}" />
+        <Setter Property="FontWeight" Value="Bold" />
+        <Setter Property="FontSize" Value="14" />
+    </Style>
+
+    <!-- ============================== Surface helpers ============================== -->
+    <Style Selector="Border.card">
+        <Setter Property="Background" Value="{StaticResource SurfaceCard}" />
+        <Setter Property="CornerRadius" Value="6" />
+    </Style>
+
+    <Style Selector="Border.divider">
+        <Setter Property="Width" Value="1" />
+        <Setter Property="Height" Value="20" />
+        <Setter Property="Background" Value="{StaticResource LineStrong}" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+
+    <Style Selector="Border.badge">
+        <Setter Property="Background" Value="{StaticResource SuccessWash}" />
+        <Setter Property="CornerRadius" Value="12" />
+        <Setter Property="Padding" Value="8,2" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+
+    <!-- ============================== Buttons ============================== -->
+    <Style Selector="Button">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="Foreground" Value="{StaticResource TextSecondary}" />
+        <Setter Property="BorderBrush" Value="{StaticResource LineStrong}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="5" />
+        <Setter Property="Padding" Value="10,5" />
+        <Setter Property="FontSize" Value="12" />
+    </Style>
+    <Style Selector="Button:pointerover /template/ ContentPresenter">
+        <Setter Property="Background" Value="{StaticResource SurfaceCard}" />
+        <Setter Property="TextBlock.Foreground" Value="{StaticResource TextPrimary}" />
+        <Setter Property="BorderBrush" Value="{StaticResource LineStrong}" />
+    </Style>
+    <Style Selector="Button:disabled">
+        <Setter Property="Opacity" Value="0.4" />
+    </Style>
+
+    <!-- Accent (primary) button -->
+    <Style Selector="Button.accent">
+        <Setter Property="Background" Value="{StaticResource Accent}" />
+        <Setter Property="Foreground" Value="{StaticResource SurfaceBase}" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="CornerRadius" Value="6" />
+        <Setter Property="Padding" Value="16,7" />
+    </Style>
+    <Style Selector="Button.accent /template/ ContentPresenter">
+        <Setter Property="TextBlock.Foreground" Value="{StaticResource SurfaceBase}" />
+    </Style>
+    <Style Selector="Button.accent:pointerover /template/ ContentPresenter">
+        <Setter Property="Background" Value="{StaticResource AccentHover}" />
+        <Setter Property="TextBlock.Foreground" Value="{StaticResource SurfaceBase}" />
+    </Style>
+
+    <!-- Outline-accent button (header session action) -->
+    <Style Selector="Button.accentOutline">
+        <Setter Property="Background" Value="{StaticResource AccentWash}" />
+        <Setter Property="Foreground" Value="{StaticResource Accent}" />
+        <Setter Property="BorderBrush" Value="{StaticResource Accent}" />
+        <Setter Property="FontWeight" Value="Medium" />
+        <Setter Property="Padding" Value="12,5" />
+    </Style>
+    <Style Selector="Button.accentOutline /template/ ContentPresenter">
+        <Setter Property="TextBlock.Foreground" Value="{StaticResource Accent}" />
+    </Style>
+    <Style Selector="Button.accentOutline:pointerover /template/ ContentPresenter">
+        <Setter Property="Background" Value="{StaticResource AccentSoft}" />
+        <Setter Property="TextBlock.Foreground" Value="{StaticResource Accent}" />
+    </Style>
+
+    <!-- Ghost / icon button -->
+    <Style Selector="Button.ghost">
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="Foreground" Value="{StaticResource TextMuted}" />
+        <Setter Property="Padding" Value="7,5" />
+    </Style>
+
+    <!-- Header icon button (matches the sidebar pane-toggle pills) -->
+    <Style Selector="Button.icon">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="Foreground" Value="{StaticResource TextSecondary}" />
+        <Setter Property="BorderBrush" Value="{StaticResource LineStrong}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="4" />
+        <Setter Property="Padding" Value="6" />
+        <Setter Property="MinWidth" Value="0" />
+    </Style>
+    <Style Selector="Button.icon:pointerover /template/ ContentPresenter">
+        <Setter Property="Background" Value="{StaticResource SurfaceCard}" />
+        <Setter Property="TextBlock.Foreground" Value="{StaticResource TextPrimary}" />
+    </Style>
+    <Style Selector="Button.icon:flyout-open">
+        <Setter Property="Foreground" Value="{StaticResource Accent}" />
+        <Setter Property="BorderBrush" Value="{StaticResource Accent}" />
+    </Style>
+    <Style Selector="Button.icon:flyout-open /template/ ContentPresenter">
+        <Setter Property="Background" Value="{StaticResource AccentWash}" />
+    </Style>
+
+    <!-- Toolbar button (small) -->
+    <Style Selector="Button.toolbar">
+        <Setter Property="Padding" Value="8,3" />
+        <Setter Property="CornerRadius" Value="4" />
+        <Setter Property="FontSize" Value="11" />
+        <Setter Property="MinWidth" Value="0" />
+    </Style>
+
+    <Style Selector="Button.action">
+        <Setter Property="Height" Value="34" />
+        <Setter Property="MinWidth" Value="96" />
+        <Setter Property="Padding" Value="14,0" />
+        <Setter Property="HorizontalContentAlignment" Value="Center" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+    </Style>
+
+    <Style Selector="Button.transport">
+        <Setter Property="Width" Value="34" />
+        <Setter Property="Height" Value="34" />
+        <Setter Property="MinWidth" Value="34" />
+        <Setter Property="Padding" Value="0" />
+        <Setter Property="CornerRadius" Value="6" />
+        <Setter Property="HorizontalContentAlignment" Value="Center" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+    </Style>
+    <Style Selector="Button.transport.stopActive">
+        <Setter Property="Foreground" Value="{StaticResource Danger}" />
+        <Setter Property="BorderBrush" Value="{StaticResource Danger}" />
+    </Style>
+    <Style Selector="Button.transport.stopActive /template/ ContentPresenter">
+        <Setter Property="Background" Value="#1FD46A5A" />
+        <Setter Property="TextBlock.Foreground" Value="{StaticResource Danger}" />
+    </Style>
+    <Style Selector="Button.transport.stopActive:pointerover /template/ ContentPresenter">
+        <Setter Property="Background" Value="#33D46A5A" />
+        <Setter Property="TextBlock.Foreground" Value="{StaticResource Danger}" />
+        <Setter Property="BorderBrush" Value="{StaticResource Danger}" />
+    </Style>
+
+    <Style Selector="Button.windowControl">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="Foreground" Value="{StaticResource TextSecondary}" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="CornerRadius" Value="4" />
+        <Setter Property="Width" Value="30" />
+        <Setter Property="Height" Value="24" />
+        <Setter Property="Padding" Value="0" />
+    </Style>
+    <Style Selector="Button.windowControl:pointerover /template/ ContentPresenter">
+        <Setter Property="Background" Value="{StaticResource SurfaceCard}" />
+        <Setter Property="TextBlock.Foreground" Value="{StaticResource TextPrimary}" />
+    </Style>
+    <Style Selector="Button.windowControl.close:pointerover /template/ ContentPresenter">
+        <Setter Property="Background" Value="{StaticResource Danger}" />
+        <Setter Property="TextBlock.Foreground" Value="{StaticResource SurfaceBase}" />
+    </Style>
+
+    <!-- ============================== ToggleButton: overlay pill ============================== -->
+    <Style Selector="ToggleButton.pill">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="Foreground" Value="{StaticResource TextSecondary}" />
+        <Setter Property="BorderBrush" Value="{StaticResource LineStrong}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="4" />
+        <Setter Property="Padding" Value="8,3" />
+        <Setter Property="FontSize" Value="11" />
+        <Setter Property="MinWidth" Value="0" />
+    </Style>
+    <Style Selector="ToggleButton.pill:pointerover /template/ ContentPresenter">
+        <Setter Property="Background" Value="{StaticResource SurfaceCard}" />
+        <Setter Property="TextBlock.Foreground" Value="{StaticResource TextPrimary}" />
+    </Style>
+    <Style Selector="ToggleButton.pill:checked">
+        <Setter Property="Foreground" Value="{StaticResource Accent}" />
+        <Setter Property="BorderBrush" Value="{StaticResource Accent}" />
+    </Style>
+    <Style Selector="ToggleButton.pill:checked /template/ ContentPresenter">
+        <Setter Property="Background" Value="{StaticResource AccentWash}" />
+        <Setter Property="TextBlock.Foreground" Value="{StaticResource Accent}" />
+    </Style>
+    <Style Selector="ToggleButton.pill:checked:pointerover /template/ ContentPresenter">
+        <Setter Property="Background" Value="{StaticResource AccentSoft}" />
+        <Setter Property="TextBlock.Foreground" Value="{StaticResource Accent}" />
+    </Style>
+
+    <!-- ToggleButton: transport (play / loop) -->
+    <Style Selector="ToggleButton.transport">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="Foreground" Value="{StaticResource TextSecondary}" />
+        <Setter Property="BorderBrush" Value="{StaticResource LineStrong}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="6" />
+        <Setter Property="Width" Value="34" />
+        <Setter Property="Height" Value="34" />
+        <Setter Property="MinWidth" Value="34" />
+        <Setter Property="Padding" Value="0" />
+        <Setter Property="HorizontalContentAlignment" Value="Center" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+    </Style>
+    <Style Selector="ToggleButton.transport:checked">
+        <Setter Property="Foreground" Value="{StaticResource Accent}" />
+        <Setter Property="BorderBrush" Value="{StaticResource Accent}" />
+    </Style>
+    <Style Selector="ToggleButton.transport:checked /template/ ContentPresenter">
+        <Setter Property="Background" Value="{StaticResource AccentWash}" />
+    </Style>
+
+    <!-- ============================== Panel tabs (full-width underline; right pane) ============================== -->
+    <!-- Retemplated TabControl: equal-width tabs with a divider line under the strip. -->
+    <Style Selector="TabControl.panel">
+        <Setter Property="Padding" Value="12" />
+        <Setter Property="Template">
+            <ControlTemplate>
+                <DockPanel>
+                    <Border
+                        BorderBrush="{StaticResource LineSubtle}"
+                        BorderThickness="0,0,0,1"
+                        DockPanel.Dock="Top">
+                        <ItemsPresenter Name="PART_ItemsPresenter" ItemsPanel="{TemplateBinding ItemsPanel}" />
+                    </Border>
+                    <ContentPresenter
+                        Name="PART_SelectedContentHost"
+                        Margin="{TemplateBinding Padding}"
+                        Content="{TemplateBinding SelectedContent}"
+                        ContentTemplate="{TemplateBinding SelectedContentTemplate}" />
+                </DockPanel>
+            </ControlTemplate>
+        </Setter>
+        <Setter Property="ItemsPanel">
+            <ItemsPanelTemplate>
+                <UniformGrid Rows="1" />
+            </ItemsPanelTemplate>
+        </Setter>
+    </Style>
+    <Style Selector="TabControl.panel > TabItem">
+        <Setter Property="Foreground" Value="{StaticResource TextMuted}" />
+        <Setter Property="FontSize" Value="12" />
+        <Setter Property="FontWeight" Value="Normal" />
+        <Setter Property="Padding" Value="0,8" />
+        <Setter Property="MinHeight" Value="0" />
+        <Setter Property="BorderBrush" Value="Transparent" />
+        <Setter Property="Template">
+            <ControlTemplate>
+                <Border
+                    Background="Transparent"
+                    BorderBrush="{TemplateBinding BorderBrush}"
+                    BorderThickness="0,0,0,2"
+                    Padding="{TemplateBinding Padding}">
+                    <ContentPresenter
+                        HorizontalAlignment="Center"
+                        VerticalAlignment="Center"
+                        Content="{TemplateBinding Header}"
+                        ContentTemplate="{TemplateBinding HeaderTemplate}" />
+                </Border>
+            </ControlTemplate>
+        </Setter>
+    </Style>
+    <Style Selector="TabControl.panel > TabItem:pointerover">
+        <Setter Property="Foreground" Value="{StaticResource TextSecondary}" />
+    </Style>
+    <Style Selector="TabControl.panel > TabItem:selected">
+        <Setter Property="Foreground" Value="{StaticResource TextPrimary}" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="BorderBrush" Value="{StaticResource Accent}" />
+    </Style>
+
+    <!-- ============================== Sub tabs (wrapping pills; inspector) ============================== -->
+    <Style Selector="TabControl.sub">
+        <Setter Property="Padding" Value="0" />
+        <Setter Property="ItemsPanel">
+            <ItemsPanelTemplate>
+                <WrapPanel />
+            </ItemsPanelTemplate>
+        </Setter>
+    </Style>
+    <Style Selector="TabControl.sub > TabItem">
+        <Setter Property="Foreground" Value="{StaticResource TextMuted}" />
+        <Setter Property="FontSize" Value="11" />
+        <Setter Property="FontWeight" Value="Normal" />
+        <Setter Property="Margin" Value="0,0,2,2" />
+        <Setter Property="MinHeight" Value="0" />
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="Template">
+            <ControlTemplate>
+                <Border
+                    Background="{TemplateBinding Background}"
+                    CornerRadius="4"
+                    Padding="8,3">
+                    <ContentPresenter
+                        Content="{TemplateBinding Header}"
+                        ContentTemplate="{TemplateBinding HeaderTemplate}" />
+                </Border>
+            </ControlTemplate>
+        </Setter>
+    </Style>
+    <Style Selector="TabControl.sub > TabItem:pointerover">
+        <Setter Property="Foreground" Value="{StaticResource TextPrimary}" />
+        <Setter Property="Background" Value="{StaticResource SurfaceCard}" />
+    </Style>
+    <Style Selector="TabControl.sub > TabItem:selected">
+        <Setter Property="Foreground" Value="{StaticResource Accent}" />
+        <Setter Property="FontWeight" Value="Medium" />
+        <Setter Property="Background" Value="{StaticResource AccentWash}" />
+    </Style>
+
+    <!-- ============================== ListBox ============================== -->
+    <Style Selector="ListBox.studio">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="Padding" Value="0" />
+    </Style>
+    <Style Selector="ListBox.studio ListBoxItem">
+        <Setter Property="Padding" Value="8,7" />
+        <Setter Property="Margin" Value="0,1" />
+        <Setter Property="CornerRadius" Value="5" />
+        <Setter Property="MinHeight" Value="0" />
+    </Style>
+    <Style Selector="ListBox.studio ListBoxItem:pointerover /template/ ContentPresenter">
+        <Setter Property="Background" Value="{StaticResource SurfaceCard}" />
+    </Style>
+    <Style Selector="ListBox.studio ListBoxItem:selected /template/ ContentPresenter">
+        <Setter Property="Background" Value="{StaticResource AccentWash}" />
+    </Style>
+
+    <!-- ============================== Inputs ============================== -->
+    <Style Selector="ComboBox">
+        <Setter Property="Background" Value="{StaticResource SurfaceCard}" />
+        <Setter Property="Foreground" Value="{StaticResource TextPrimary}" />
+        <Setter Property="BorderBrush" Value="{StaticResource LineStrong}" />
+        <Setter Property="CornerRadius" Value="5" />
+        <Setter Property="FontSize" Value="11" />
+        <Setter Property="MinHeight" Value="0" />
+        <Setter Property="Padding" Value="8,4" />
+    </Style>
+
+    <Style Selector="CheckBox">
+        <Setter Property="Foreground" Value="{StaticResource TextSecondary}" />
+        <Setter Property="FontSize" Value="12" />
+    </Style>
+
+    <Style Selector="NumericUpDown">
+        <Setter Property="Background" Value="{StaticResource SurfaceCard}" />
+        <Setter Property="BorderBrush" Value="{StaticResource LineStrong}" />
+        <Setter Property="CornerRadius" Value="5" />
+        <Setter Property="FontSize" Value="12" />
+    </Style>
+
+    <!-- ============================== Slider (timeline) ============================== -->
+    <Style Selector="Slider.timeline">
+        <Setter Property="MinHeight" Value="0" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+    <Style Selector="Slider.timeline /template/ Track">
+        <Setter Property="Height" Value="4" />
+    </Style>
+
+    <!-- ============================== Flyout popover (settings) ============================== -->
+    <Style Selector="FlyoutPresenter.studioPopover">
+        <Setter Property="Background" Value="{StaticResource SurfaceCard}" />
+        <Setter Property="BorderBrush" Value="{StaticResource LineStrong}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="8" />
+        <Setter Property="Padding" Value="14" />
+    </Style>
+
+    <!-- ============================== Toggle switch (settings) ============================== -->
+    <Style Selector="ToggleSwitch">
+        <Setter Property="OnContent" Value="{x:Null}" />
+        <Setter Property="OffContent" Value="{x:Null}" />
+    </Style>
+</Styles>

@@ -29,7 +29,7 @@ public sealed class DiagnosticsPanelViewModelTests
                 true,
                 true,
                 true,
-                ViewportBackgroundStyle.Studio),
+                ViewportBackgroundStyle.Black),
             diagnostics: [diagnostic],
             unsupportedFeatures: [unsupportedFeature]);
         TestWorkspaceSessionService workspaceSessionService = new(

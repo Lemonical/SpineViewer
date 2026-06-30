@@ -16,12 +16,14 @@ public sealed class ViewerSettingsViewModelTests
         viewModel.SelectedTheme = ViewerTheme.Dark;
         viewModel.ShowMeshWireframeByDefault = true;
         viewModel.DefaultTrackMixDurationSeconds = 0.4;
+        viewModel.UseCustomTitleBar = false;
 
-        await WaitForConditionAsync(static service => service.SaveCount >= 3, viewerSettingsService);
+        await WaitForConditionAsync(static service => service.SaveCount >= 4, viewerSettingsService);
 
         Assert.Equal(ViewerTheme.Dark, viewerSettingsService.CurrentSettings.Theme);
         Assert.True(viewerSettingsService.CurrentSettings.ShowMeshWireframeByDefault);
         Assert.Equal(TimeSpan.FromSeconds(0.4), viewerSettingsService.CurrentSettings.DefaultTrackMixDuration);
+        Assert.False(viewerSettingsService.CurrentSettings.UseCustomTitleBar);
         Assert.Equal(ViewerTheme.Dark, applicationThemeService.AppliedThemes.Last());
     }
 

@@ -6,22 +6,27 @@ namespace SpineViewer.Core.Models;
 public enum ViewportBackgroundStyle
 {
     /// <summary>
-    /// Uses a dark studio background.
+    /// Uses a black background.
     /// </summary>
-    Studio = 0,
+    Black = 0,
 
     /// <summary>
-    /// Uses a cooler slate background.
+    /// Uses a red background.
     /// </summary>
-    Slate = 1,
+    Red = 1,
 
     /// <summary>
-    /// Uses a blueprint-inspired background.
+    /// Uses a green background.
     /// </summary>
-    Blueprint = 2,
+    Green = 2,
 
     /// <summary>
     /// Uses a light paper-like background.
     /// </summary>
     Paper = 3,
+
+    /// <summary>
+    /// Uses a blue background.
+    /// </summary>
+    Blue = 4,
 }

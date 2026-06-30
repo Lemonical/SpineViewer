@@ -6,60 +6,79 @@
     xmlns:viewModels="using:SpineViewer.Features.Diagnostics.ViewModels"
     x:DataType="viewModels:DiagnosticsPanelViewModel">
     <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
-        <StackPanel Margin="4" Spacing="14">
-            <Border Background="#172234" CornerRadius="14" Padding="14">
-                <StackPanel Spacing="6">
-                    <TextBlock FontSize="18" FontWeight="SemiBold" Text="Overlay Summary" />
-                    <TextBlock Classes="hint" Text="{Binding OverlaySummaryText}" TextWrapping="Wrap" />
-                </StackPanel>
-            </Border>
-
-            <Border Background="#172234" CornerRadius="14" Padding="14">
-                <StackPanel Spacing="8">
-                    <TextBlock FontSize="18" FontWeight="SemiBold" Text="Diagnostics" />
+        <StackPanel Spacing="12">
+            <!-- Healthy / summary -->
+            <Border Classes="card" Padding="12">
+                <StackPanel Spacing="4">
+                    <TextBlock
+                        FontSize="12"
+                        FontWeight="Medium"
+                        IsVisible="{Binding HasNoDiagnostics}"
+                        Text="No issues detected" />
                     <TextBlock
                         Classes="hint"
                         IsVisible="{Binding HasNoDiagnostics}"
-                        Text="No workspace diagnostics are active."
+                        Text="All companion files resolved successfully."
                         TextWrapping="Wrap" />
-                    <ListBox ItemsSource="{Binding Diagnostics}" SelectedItem="{Binding SelectedDiagnostic}">
-                        <ListBox.ItemTemplate>
-                            <DataTemplate x:DataType="coreModels:ViewerDiagnostic">
-                                <StackPanel Margin="2" Spacing="2">
-                                    <TextBlock FontWeight="SemiBold" Text="{Binding Message}" TextWrapping="Wrap" />
-                                    <TextBlock Classes="hint" Text="{Binding Severity}" />
-                                </StackPanel>
-                            </DataTemplate>
-                        </ListBox.ItemTemplate>
-                    </ListBox>
+                    <TextBlock
+                        FontSize="12"
+                        FontWeight="Medium"
+                        IsVisible="{Binding HasDiagnostics}"
+                        Text="{Binding DiagnosticSeveritySummaryText}"
+                        TextWrapping="Wrap" />
                 </StackPanel>
             </Border>
 
-            <Border Background="#172234" CornerRadius="14" Padding="14">
-                <StackPanel Spacing="6">
-                    <TextBlock FontWeight="SemiBold" Text="{Binding SelectedDiagnostic.Code}" />
-                    <TextBlock Text="{Binding SelectedDiagnostic.Message}" TextWrapping="Wrap" />
+            <ListBox
+                Classes="studio"
+                IsVisible="{Binding HasDiagnostics}"
+                ItemsSource="{Binding Diagnostics}"
+                SelectedItem="{Binding SelectedDiagnostic}">
+                <ListBox.ItemTemplate>
+                    <DataTemplate x:DataType="coreModels:ViewerDiagnostic">
+                        <StackPanel Spacing="1">
+                            <TextBlock FontSize="12" FontWeight="Medium" Text="{Binding Message}" TextWrapping="Wrap" />
+                            <TextBlock Classes="hint" FontSize="10" Text="{Binding Severity}" />
+                        </StackPanel>
+                    </DataTemplate>
+                </ListBox.ItemTemplate>
+            </ListBox>
+
+            <Border Classes="card" IsVisible="{Binding HasDiagnostics}" Padding="12">
+                <StackPanel Spacing="4">
+                    <TextBlock FontSize="12" FontWeight="SemiBold" Text="{Binding SelectedDiagnosticTitle}" TextWrapping="Wrap" />
+                    <TextBlock Classes="hint" Text="{Binding SelectedDiagnosticSummaryText}" TextWrapping="Wrap" />
                     <TextBlock Classes="hint" Text="{Binding SelectedDiagnostic.Source}" TextWrapping="Wrap" />
-                    <TextBlock Classes="hint" Text="{Binding SelectedDiagnostic.Details}" TextWrapping="Wrap" />
-                    <TextBlock Classes="hint" Text="{Binding SelectedDiagnostic.SuggestedAction}" TextWrapping="Wrap" />
+                    <TextBlock
+                        Foreground="{DynamicResource Accent}"
+                        FontSize="11"
+                        IsVisible="{Binding HasSelectedDiagnosticSuggestedAction}"
+                        Text="{Binding SelectedDiagnostic.SuggestedAction}"
+                        TextWrapping="Wrap" />
                 </StackPanel>
             </Border>
 
-            <Border Background="#172234" CornerRadius="14" Padding="14">
-                <StackPanel Spacing="8">
-                    <TextBlock FontSize="18" FontWeight="SemiBold" Text="Unsupported Features" />
-                    <ItemsControl ItemsSource="{Binding UnsupportedFeatures}">
-                        <ItemsControl.ItemTemplate>
-                            <DataTemplate x:DataType="coreModels:UnsupportedSpineFeature">
-                                <StackPanel Margin="0,0,0,8" Spacing="2">
-                                    <TextBlock FontWeight="SemiBold" Text="{Binding DisplayName}" />
-                                    <TextBlock Classes="hint" Text="{Binding Details}" TextWrapping="Wrap" />
-                                </StackPanel>
-                            </DataTemplate>
-                        </ItemsControl.ItemTemplate>
-                    </ItemsControl>
-                </StackPanel>
-            </Border>
+            <!-- Unsupported features -->
+            <StackPanel IsVisible="{Binding HasUnsupportedFeatures}" Spacing="6">
+                <TextBlock Classes="section" Text="UNSUPPORTED FEATURES" />
+                <TextBlock Classes="hint" Text="{Binding UnsupportedFeatureSummaryText}" TextWrapping="Wrap" />
+                <ItemsControl ItemsSource="{Binding UnsupportedFeatures}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="coreModels:UnsupportedSpineFeature">
+                            <StackPanel Margin="0,0,0,8" Spacing="1">
+                                <TextBlock FontSize="12" FontWeight="Medium" Text="{Binding DisplayName}" />
+                                <TextBlock Classes="hint" FontSize="10" Text="{Binding Details}" TextWrapping="Wrap" />
+                            </StackPanel>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </StackPanel>
+
+            <!-- Overlay summary -->
+            <StackPanel Spacing="4">
+                <TextBlock Classes="section" Text="OVERLAYS" />
+                <TextBlock Classes="hint" Text="{Binding OverlaySummaryText}" TextWrapping="Wrap" />
+            </StackPanel>
         </StackPanel>
     </ScrollViewer>
 </UserControl>

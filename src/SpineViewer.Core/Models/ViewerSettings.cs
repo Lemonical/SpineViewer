@@ -20,7 +20,7 @@ public sealed record ViewerSettings
         ShowUnsupportedFeatureIndicatorsByDefault = true;
         DefaultTrackMixDuration = TimeSpan.FromSeconds(0.15);
         DefaultTrackTimeScale = 1.0;
-        DefaultViewportBackgroundStyle = ViewportBackgroundStyle.Studio;
+        DefaultViewportBackgroundStyle = ViewportBackgroundStyle.Black;
         LastWindowState = null;
     }
 
@@ -100,7 +100,7 @@ public sealed record ViewerSettings
         ShowUnsupportedFeatureIndicatorsByDefault = true;
         DefaultTrackMixDuration = TimeSpan.FromSeconds(0.15);
         DefaultTrackTimeScale = 1.0;
-        DefaultViewportBackgroundStyle = ViewportBackgroundStyle.Studio;
+        DefaultViewportBackgroundStyle = ViewportBackgroundStyle.Black;
         LastWindowState = null;
     }
 
@@ -188,6 +188,11 @@ public sealed record ViewerSettings
     /// Gets a value indicating whether the last open session should be restored on startup.
     /// </summary>
     public bool RestoreLastSessionOnStartup { get; init; }
+
+    /// <summary>
+    /// Gets a value indicating whether the shell should use the custom in-app title bar.
+    /// </summary>
+    public bool UseCustomTitleBar { get; init; } = true;
 
     /// <summary>
     /// Gets the last successfully opened project, if one should be restored later.

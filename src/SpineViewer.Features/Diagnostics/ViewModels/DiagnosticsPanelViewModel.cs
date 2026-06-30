@@ -29,12 +29,16 @@ public sealed partial class DiagnosticsPanelViewModel : ObservableObject, IDispo
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(HasDiagnostics))]
     [NotifyPropertyChangedFor(nameof(HasNoDiagnostics))]
+    [NotifyPropertyChangedFor(nameof(DiagnosticSeveritySummaryText))]
     private IReadOnlyList<ViewerDiagnostic> diagnostics = Array.Empty<ViewerDiagnostic>();
 
     /// <summary>
     /// Gets the currently selected diagnostic.
     /// </summary>
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(SelectedDiagnosticTitle))]
+    [NotifyPropertyChangedFor(nameof(SelectedDiagnosticSummaryText))]
+    [NotifyPropertyChangedFor(nameof(HasSelectedDiagnosticSuggestedAction))]
     private ViewerDiagnostic? selectedDiagnostic;
 
     /// <summary>
@@ -42,6 +46,7 @@ public sealed partial class DiagnosticsPanelViewModel : ObservableObject, IDispo
     /// </summary>
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(HasUnsupportedFeatures))]
+    [NotifyPropertyChangedFor(nameof(UnsupportedFeatureSummaryText))]
     private IReadOnlyList<UnsupportedSpineFeature> unsupportedFeatures = Array.Empty<UnsupportedSpineFeature>();
 
     /// <summary>
@@ -72,6 +77,51 @@ public sealed partial class DiagnosticsPanelViewModel : ObservableObject, IDispo
     /// Gets a value indicating whether unsupported features are available.
     /// </summary>
     public bool HasUnsupportedFeatures => UnsupportedFeatures.Count > 0;
+
+    /// <summary>
+    /// Gets the current diagnostic severity summary.
+    /// </summary>
+    public string DiagnosticSeveritySummaryText
+    {
+        get
+        {
+            if (Diagnostics.Count == 0)
+            {
+                return "No diagnostics are active.";
+            }
+
+            int errorCount = Diagnostics.Count(static diagnostic => diagnostic.Severity == ViewerDiagnosticSeverity.Error);
+            int warningCount = Diagnostics.Count(static diagnostic => diagnostic.Severity == ViewerDiagnosticSeverity.Warning);
+            int infoCount = Diagnostics.Count - errorCount - warningCount;
+            return $"{errorCount} error(s), {warningCount} warning(s), {infoCount} info item(s).";
+        }
+    }
+
+    /// <summary>
+    /// Gets the selected diagnostic title.
+    /// </summary>
+    public string SelectedDiagnosticTitle => SelectedDiagnostic is null
+        ? "Select a diagnostic to inspect recovery details."
+        : $"{SelectedDiagnostic.Severity} | {SelectedDiagnostic.Code}";
+
+    /// <summary>
+    /// Gets the selected diagnostic summary text.
+    /// </summary>
+    public string SelectedDiagnosticSummaryText => SelectedDiagnostic?.Message
+        ?? "No diagnostic is currently selected.";
+
+    /// <summary>
+    /// Gets a value indicating whether the selected diagnostic includes recovery guidance.
+    /// </summary>
+    public bool HasSelectedDiagnosticSuggestedAction =>
+        !string.IsNullOrWhiteSpace(SelectedDiagnostic?.SuggestedAction);
+
+    /// <summary>
+    /// Gets the unsupported-feature summary text.
+    /// </summary>
+    public string UnsupportedFeatureSummaryText => UnsupportedFeatures.Count == 0
+        ? "No unsupported Spine features were detected in the current session."
+        : $"{UnsupportedFeatures.Count} unsupported feature(s) need review.";
 
     private void ApplyState(WorkspaceState workspaceState)
     {

@@ -124,7 +124,14 @@ public sealed class PlaybackTransportViewModelTests
 
         public WorkspaceState State { get; private set; }
 
+        public bool CanRetryLastOpen => false;
+
         public Task CloseAsync(CancellationToken cancellationToken)
+        {
+            return Task.CompletedTask;
+        }
+
+        public Task ClearRecentProjectsAsync(CancellationToken cancellationToken)
         {
             return Task.CompletedTask;
         }
@@ -150,6 +157,18 @@ public sealed class PlaybackTransportViewModelTests
         }
 
         public Task ReloadAsync(CancellationToken cancellationToken)
+        {
+            return Task.CompletedTask;
+        }
+
+        public Task RemoveRecentProjectAsync(
+            SpineProjectReference projectReference,
+            CancellationToken cancellationToken)
+        {
+            return Task.CompletedTask;
+        }
+
+        public Task RetryLastOpenAsync(CancellationToken cancellationToken)
         {
             return Task.CompletedTask;
         }
@@ -182,6 +201,10 @@ public sealed class PlaybackTransportViewModelTests
         }
 
         public void UpdateSelectedSkin(string? skinName)
+        {
+        }
+
+        public void UpdatePreferredRuntimeId(string? runtimeId)
         {
         }
     }

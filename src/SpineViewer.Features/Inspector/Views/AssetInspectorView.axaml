@@ -5,170 +5,145 @@
     xmlns:coreModels="using:SpineViewer.Core.Models"
     xmlns:inspectorViewModels="using:SpineViewer.Features.Inspector.ViewModels"
     x:DataType="inspectorViewModels:AssetInspectorViewModel">
-    <Grid RowDefinitions="Auto,*" RowSpacing="12">
-        <StackPanel Spacing="4">
-            <TextBlock FontSize="18" FontWeight="SemiBold" Text="Inspector" />
-            <TextBlock Classes="hint" Text="{Binding ExportSummaryText}" TextWrapping="Wrap" />
-        </StackPanel>
+    <Grid RowDefinitions="Auto,*">
+        <TextBlock
+            Classes="hint"
+            Margin="0,0,0,10"
+            Text="{Binding ExportSummaryText}"
+            TextWrapping="Wrap" />
 
-        <TabControl Grid.Row="1">
-            <TabItem Header="Animations">
-                <Grid ColumnDefinitions="*,*" ColumnSpacing="12" Margin="0,10,0,0">
-                    <ListBox ItemsSource="{Binding Animations}" SelectedItem="{Binding SelectedAnimation}">
-                        <ListBox.ItemTemplate>
-                            <DataTemplate x:DataType="coreModels:SpineAnimationInfo">
-                                <StackPanel Margin="2" Spacing="2">
-                                    <TextBlock FontWeight="SemiBold" Text="{Binding Name}" />
-                                    <TextBlock Classes="hint" Text="{Binding Duration}" />
+        <TextBlock
+            Classes="hint"
+            Grid.Row="1"
+            IsVisible="{Binding !HasActiveSession}"
+            Text="{Binding EmptyStateText}"
+            TextWrapping="Wrap"
+            VerticalAlignment="Top" />
+
+        <TabControl Classes="sub" Grid.Row="1" IsVisible="{Binding HasActiveSession}">
+            <!-- Animations -->
+            <TabItem Header="Anim">
+                <ListBox Classes="studio" ItemsSource="{Binding Animations}" Margin="0,8,0,0" SelectedItem="{Binding SelectedAnimation}">
+                    <ListBox.ItemTemplate>
+                        <DataTemplate x:DataType="coreModels:SpineAnimationInfo">
+                            <Grid ColumnDefinitions="*,Auto">
+                                <StackPanel Spacing="1">
+                                    <TextBlock FontSize="12" FontWeight="Medium" Text="{Binding Name}" />
+                                    <StackPanel Orientation="Horizontal" Spacing="4">
+                                        <TextBlock Classes="hint" FontSize="10" Text="{Binding TimelineCount}" />
+                                        <TextBlock Classes="hint" FontSize="10" Text="timelines ·" />
+                                        <TextBlock Classes="hint" FontSize="10" Text="{Binding KeyframeCount}" />
+                                        <TextBlock Classes="hint" FontSize="10" Text="kf" />
+                                    </StackPanel>
                                 </StackPanel>
-                            </DataTemplate>
-                        </ListBox.ItemTemplate>
-                    </ListBox>
-
-                    <Border Grid.Column="1" Background="#172234" CornerRadius="12" Padding="12">
-                        <StackPanel Spacing="6">
-                            <TextBlock FontWeight="SemiBold" Text="{Binding SelectedAnimation.Name}" />
-                            <TextBlock Text="{Binding SelectedAnimation.Duration}" />
-                            <TextBlock Classes="hint" Text="{Binding SelectedAnimation.TimelineCount, StringFormat=Timelines: {0}}" />
-                            <TextBlock Classes="hint" Text="{Binding SelectedAnimation.KeyframeCount, StringFormat=Keyframes: {0}}" />
-                        </StackPanel>
-                    </Border>
-                </Grid>
+                                <TextBlock
+                                    Classes="mono"
+                                    Grid.Column="1"
+                                    Text="{Binding Duration, StringFormat={}{0:ss\\.ff}s}"
+                                    VerticalAlignment="Center" />
+                            </Grid>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
             </TabItem>
 
+            <!-- Bones -->
+            <TabItem Header="Bones">
+                <TreeView ItemsSource="{Binding BoneTree}" Margin="0,8,0,0">
+                    <TreeView.ItemTemplate>
+                        <TreeDataTemplate DataType="inspectorViewModels:BoneTreeNodeViewModel" ItemsSource="{Binding Children}">
+                            <TextBlock FontSize="12" Text="{Binding Name}" />
+                        </TreeDataTemplate>
+                    </TreeView.ItemTemplate>
+                </TreeView>
+            </TabItem>
+
+            <!-- Skins -->
             <TabItem Header="Skins">
-                <Grid ColumnDefinitions="*,*" ColumnSpacing="12" Margin="0,10,0,0">
-                    <StackPanel Spacing="10">
-                        <ListBox ItemsSource="{Binding Skins}" SelectedItem="{Binding SelectedSkin}">
-                            <ListBox.ItemTemplate>
-                                <DataTemplate x:DataType="coreModels:SpineSkinInfo">
-                                    <StackPanel Margin="2" Spacing="2">
-                                        <TextBlock FontWeight="SemiBold" Text="{Binding Name}" />
-                                        <TextBlock Classes="hint" Text="{Binding AttachmentCount, StringFormat=Attachments: {0}}" />
+                <ListBox Classes="studio" ItemsSource="{Binding Skins}" Margin="0,8,0,0" SelectedItem="{Binding SelectedSkin}">
+                    <ListBox.ItemTemplate>
+                        <DataTemplate x:DataType="coreModels:SpineSkinInfo">
+                            <StackPanel Spacing="1">
+                                <TextBlock FontSize="12" FontWeight="Medium" Text="{Binding Name}" />
+                                <TextBlock Classes="hint" FontSize="10" Text="{Binding AttachmentCount, StringFormat={}{0} attachments}" />
+                            </StackPanel>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+            </TabItem>
+
+            <!-- Slots -->
+            <TabItem Header="Slots">
+                <ListBox Classes="studio" ItemsSource="{Binding Slots}" Margin="0,8,0,0" SelectedItem="{Binding SelectedSlot}">
+                    <ListBox.ItemTemplate>
+                        <DataTemplate x:DataType="coreModels:SpineSlotInfo">
+                            <StackPanel Spacing="1">
+                                <TextBlock FontSize="12" FontWeight="Medium" Text="{Binding Name}" />
+                                <StackPanel Orientation="Horizontal" Spacing="4">
+                                    <TextBlock Classes="hint" FontSize="10" Text="{Binding BoneName}" />
+                                    <TextBlock Classes="hint" FontSize="10" Text="·" />
+                                    <TextBlock Classes="hint" FontSize="10" Text="{Binding BlendMode}" />
+                                </StackPanel>
+                            </StackPanel>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+            </TabItem>
+
+            <!-- Atlas -->
+            <TabItem Header="Atlas">
+                <ListBox Classes="studio" ItemsSource="{Binding AtlasPages}" Margin="0,8,0,0" SelectedItem="{Binding SelectedAtlasPage}">
+                    <ListBox.ItemTemplate>
+                        <DataTemplate x:DataType="coreModels:SpineAtlasPageInfo">
+                            <StackPanel Spacing="1">
+                                <TextBlock FontSize="12" FontWeight="Medium" Text="{Binding Name}" />
+                                <StackPanel Orientation="Horizontal" Spacing="4">
+                                    <TextBlock Classes="hint" FontSize="10" Text="{Binding Width}" />
+                                    <TextBlock Classes="hint" FontSize="10" Text="×" />
+                                    <TextBlock Classes="hint" FontSize="10" Text="{Binding Height}" />
+                                    <TextBlock Classes="hint" FontSize="10" Text="·" />
+                                    <TextBlock Classes="hint" FontSize="10" Text="{Binding Filter}" />
+                                    <TextBlock Classes="hint" FontSize="10" Text="·" />
+                                    <TextBlock Classes="hint" FontSize="10" Text="{Binding RegionCount, StringFormat={}{0} regions}" />
+                                </StackPanel>
+                            </StackPanel>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+            </TabItem>
+
+            <!-- Runtime -->
+            <TabItem Header="Runtime">
+                <ScrollViewer Margin="0,8,0,0">
+                    <StackPanel Spacing="8">
+                        <TextBlock Classes="section" Text="CAPABILITIES" />
+                        <ItemsControl ItemsSource="{Binding RuntimeCapabilities}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate x:DataType="coreModels:SpineRuntimeFeatureSupport">
+                                    <Grid ColumnDefinitions="*,Auto" Margin="0,3">
+                                        <TextBlock FontSize="12" Text="{Binding Feature}" />
+                                        <TextBlock
+                                            FontSize="12"
+                                            Grid.Column="1"
+                                            Text="{Binding IsSupported}" />
+                                    </Grid>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+
+                        <TextBlock Classes="section" Margin="0,8,0,0" Text="WARNINGS &amp; LIMITS" />
+                        <ItemsControl ItemsSource="{Binding UnsupportedFeatures}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate x:DataType="coreModels:UnsupportedSpineFeature">
+                                    <StackPanel Margin="0,0,0,8" Spacing="1">
+                                        <TextBlock FontSize="12" FontWeight="Medium" Text="{Binding DisplayName}" />
+                                        <TextBlock Classes="hint" FontSize="10" Text="{Binding Details}" TextWrapping="Wrap" />
                                     </StackPanel>
                                 </DataTemplate>
-                            </ListBox.ItemTemplate>
-                        </ListBox>
-
-                        <TextBlock Classes="hint" Text="Selecting a skin here also switches the active session skin." TextWrapping="Wrap" />
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
                     </StackPanel>
-
-                    <Border Grid.Column="1" Background="#172234" CornerRadius="12" Padding="12">
-                        <StackPanel Spacing="8">
-                            <TextBlock FontWeight="SemiBold" Text="{Binding SelectedSkin.Name}" />
-                            <TextBlock Classes="hint" Text="{Binding SelectedSkin.SlotCount, StringFormat=Slots: {0}}" />
-                            <ListBox ItemsSource="{Binding SkinAttachments}" SelectedItem="{Binding SelectedAttachment}">
-                                <ListBox.ItemTemplate>
-                                    <DataTemplate x:DataType="coreModels:SpineAttachmentInfo">
-                                        <StackPanel Margin="2" Spacing="2">
-                                            <TextBlock FontWeight="SemiBold" Text="{Binding Name}" />
-                                            <TextBlock Classes="hint" Text="{Binding SlotName}" />
-                                            <TextBlock Classes="hint" Text="{Binding AttachmentType}" />
-                                        </StackPanel>
-                                    </DataTemplate>
-                                </ListBox.ItemTemplate>
-                            </ListBox>
-                        </StackPanel>
-                    </Border>
-                </Grid>
-            </TabItem>
-
-            <TabItem Header="Bones">
-                <Border Background="#172234" CornerRadius="12" Margin="0,10,0,0" Padding="12">
-                    <TreeView ItemsSource="{Binding BoneTree}">
-                        <TreeView.ItemTemplate>
-                            <TreeDataTemplate DataType="inspectorViewModels:BoneTreeNodeViewModel" ItemsSource="{Binding Children}">
-                                <TextBlock Text="{Binding SummaryText}" />
-                            </TreeDataTemplate>
-                        </TreeView.ItemTemplate>
-                    </TreeView>
-                </Border>
-            </TabItem>
-
-            <TabItem Header="Slots">
-                <Grid ColumnDefinitions="*,*" ColumnSpacing="12" Margin="0,10,0,0">
-                    <ListBox ItemsSource="{Binding Slots}" SelectedItem="{Binding SelectedSlot}">
-                        <ListBox.ItemTemplate>
-                            <DataTemplate x:DataType="coreModels:SpineSlotInfo">
-                                <StackPanel Margin="2" Spacing="2">
-                                    <TextBlock FontWeight="SemiBold" Text="{Binding Name}" />
-                                    <TextBlock Classes="hint" Text="{Binding BoneName}" />
-                                </StackPanel>
-                            </DataTemplate>
-                        </ListBox.ItemTemplate>
-                    </ListBox>
-
-                    <Border Grid.Column="1" Background="#172234" CornerRadius="12" Padding="12">
-                        <StackPanel Spacing="6">
-                            <TextBlock FontWeight="SemiBold" Text="{Binding SelectedSlot.Name}" />
-                            <TextBlock Classes="hint" Text="{Binding SelectedSlot.BoneName, StringFormat=Bone: {0}}" />
-                            <TextBlock Classes="hint" Text="{Binding SelectedSlot.AttachmentName, StringFormat=Attachment: {0}}" />
-                            <TextBlock Classes="hint" Text="{Binding SelectedSlot.BlendMode, StringFormat=Blend: {0}}" />
-                        </StackPanel>
-                    </Border>
-                </Grid>
-            </TabItem>
-
-            <TabItem Header="Atlas">
-                <Grid ColumnDefinitions="*,*" ColumnSpacing="12" Margin="0,10,0,0">
-                    <ListBox ItemsSource="{Binding AtlasPages}" SelectedItem="{Binding SelectedAtlasPage}">
-                        <ListBox.ItemTemplate>
-                            <DataTemplate x:DataType="coreModels:SpineAtlasPageInfo">
-                                <StackPanel Margin="2" Spacing="2">
-                                    <TextBlock FontWeight="SemiBold" Text="{Binding Name}" />
-                                    <TextBlock Classes="hint" Text="{Binding RegionCount, StringFormat=Regions: {0}}" />
-                                </StackPanel>
-                            </DataTemplate>
-                        </ListBox.ItemTemplate>
-                    </ListBox>
-
-                    <Border Grid.Column="1" Background="#172234" CornerRadius="12" Padding="12">
-                        <StackPanel Spacing="8">
-                            <TextBlock FontWeight="SemiBold" Text="{Binding SelectedAtlasPage.Name}" />
-                            <TextBlock Classes="hint" Text="{Binding SelectedAtlasPage.Width, StringFormat=Width: {0}}" />
-                            <TextBlock Classes="hint" Text="{Binding SelectedAtlasPage.Height, StringFormat=Height: {0}}" />
-                            <TextBlock Classes="hint" Text="{Binding SelectedAtlasPage.Filter, StringFormat=Filter: {0}}" />
-                            <ListBox ItemsSource="{Binding AtlasRegions}">
-                                <ListBox.ItemTemplate>
-                                    <DataTemplate x:DataType="coreModels:SpineAtlasRegionInfo">
-                                        <TextBlock Text="{Binding Name}" />
-                                    </DataTemplate>
-                                </ListBox.ItemTemplate>
-                            </ListBox>
-                        </StackPanel>
-                    </Border>
-                </Grid>
-            </TabItem>
-
-            <TabItem Header="Runtime">
-                <Grid ColumnDefinitions="*,*" ColumnSpacing="12" Margin="0,10,0,0">
-                    <ListBox ItemsSource="{Binding RuntimeCapabilities}">
-                        <ListBox.ItemTemplate>
-                            <DataTemplate x:DataType="coreModels:SpineRuntimeFeatureSupport">
-                                <StackPanel Margin="2" Spacing="2">
-                                    <TextBlock FontWeight="SemiBold" Text="{Binding Feature}" />
-                                    <TextBlock Classes="hint" Text="{Binding IsSupported, StringFormat=Supported: {0}}" />
-                                </StackPanel>
-                            </DataTemplate>
-                        </ListBox.ItemTemplate>
-                    </ListBox>
-
-                    <Border Grid.Column="1" Background="#172234" CornerRadius="12" Padding="12">
-                        <StackPanel Spacing="8">
-                            <TextBlock FontWeight="SemiBold" Text="Warnings and Limits" />
-                            <ItemsControl ItemsSource="{Binding UnsupportedFeatures}">
-                                <ItemsControl.ItemTemplate>
-                                    <DataTemplate x:DataType="coreModels:UnsupportedSpineFeature">
-                                        <StackPanel Margin="0,0,0,8" Spacing="2">
-                                            <TextBlock FontWeight="SemiBold" Text="{Binding DisplayName}" />
-                                            <TextBlock Classes="hint" Text="{Binding Details}" TextWrapping="Wrap" />
-                                        </StackPanel>
-                                    </DataTemplate>
-                                </ItemsControl.ItemTemplate>
-                            </ItemsControl>
-                        </StackPanel>
-                    </Border>
-                </Grid>
+                </ScrollViewer>
             </TabItem>
         </TabControl>
     </Grid>

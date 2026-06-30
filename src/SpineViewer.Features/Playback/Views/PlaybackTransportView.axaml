@@ -2,49 +2,86 @@
     x:Class="SpineViewer.Features.Playback.Views.PlaybackTransportView"
     xmlns="https://github.com/avaloniaui"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:i="https://github.com/projektanker/icons.avalonia"
     xmlns:playbackModels="using:SpineViewer.Features.Playback.Models"
     xmlns:viewModels="using:SpineViewer.Features.Playback.ViewModels"
     x:DataType="viewModels:PlaybackTransportViewModel">
     <Border
-        Background="#101A29"
-        BorderBrush="#263547"
+        Background="#EB1A1817"
+        BorderBrush="{DynamicResource LineStrong}"
         BorderThickness="1"
-        CornerRadius="16"
-        Padding="12">
-        <Grid ColumnDefinitions="Auto,Auto,Auto,Auto,Auto,*,Auto,Auto" ColumnSpacing="10">
-            <Button Command="{Binding PlayCommand}" Content="Play" MinWidth="72" />
-            <Button Command="{Binding PauseCommand}" Content="Pause" Grid.Column="1" MinWidth="72" />
-            <Button Command="{Binding StopCommand}" Content="Stop" Grid.Column="2" MinWidth="72" />
-            <Button Command="{Binding RestartCommand}" Content="Restart" Grid.Column="3" MinWidth="84" />
-            <Button Command="{Binding FrameStepCommand}" Content="Step" Grid.Column="4" MinWidth="72" />
+        CornerRadius="8"
+        Padding="8,6">
+        <Grid ColumnDefinitions="Auto,Auto,Auto,*,Auto,Auto,Auto" VerticalAlignment="Center">
+            <!-- Play / pause -->
+            <Button
+                Classes="accent transport"
+                Command="{Binding TogglePlayPauseCommand}"
+                >
+                <Panel>
+                    <i:Icon FontSize="11" Foreground="#151312" IsVisible="{Binding !IsPlaying}" Value="fa-solid fa-play" />
+                    <i:Icon FontSize="11" Foreground="#151312" IsVisible="{Binding IsPlaying}" Value="fa-solid fa-pause" />
+                </Panel>
+            </Button>
 
+            <!-- Stop -->
+            <Button
+                Classes="transport"
+                Classes.stopActive="{Binding IsStopped}"
+                Command="{Binding StopCommand}"
+                Grid.Column="1"
+                Margin="8,0,0,0">
+                <i:Icon FontSize="11" Foreground="{Binding $parent[Button].Foreground}" Value="fa-solid fa-stop" />
+            </Button>
+
+            <!-- Step forward -->
+            <Button Classes="transport" Command="{Binding FrameStepCommand}" Grid.Column="2" Margin="6,0,0,0">
+                <i:Icon FontSize="11" Foreground="{Binding $parent[Button].Foreground}" Value="fa-solid fa-forward-step" />
+            </Button>
+
+            <!-- Timeline -->
             <Slider
-                Grid.Column="5"
+                Classes="timeline"
+                Grid.Column="3"
                 IsEnabled="{Binding HasActiveSession}"
+                Margin="10,0"
                 Maximum="{Binding TimelineMaximumSeconds}"
                 Minimum="0"
                 Value="{Binding TimelinePositionSeconds}" />
 
-            <StackPanel Grid.Column="6" HorizontalAlignment="Right" Spacing="4">
-                <TextBlock HorizontalAlignment="Right" Text="{Binding TimeSummaryText}" />
-                <TextBlock Classes="hint" HorizontalAlignment="Right" Text="{Binding StatusText}" />
-                <TextBlock Classes="hint" HorizontalAlignment="Right" Text="{Binding ShortcutHintText}" />
-            </StackPanel>
+            <!-- Time -->
+            <TextBlock
+                Classes="mono"
+                Grid.Column="4"
+                MinWidth="100"
+                Text="{Binding TimeSummaryText}"
+                TextAlignment="Right"
+                VerticalAlignment="Center" />
 
-            <StackPanel Grid.Column="7" HorizontalAlignment="Right" Spacing="6">
-                <CheckBox Content="Loop" HorizontalAlignment="Right" IsChecked="{Binding IsLooping}" />
-                <ComboBox
-                    HorizontalAlignment="Right"
-                    ItemsSource="{Binding SpeedOptions}"
-                    MinWidth="110"
-                    SelectedItem="{Binding SelectedSpeedOption}">
-                    <ComboBox.ItemTemplate>
-                        <DataTemplate x:DataType="playbackModels:PlaybackSpeedOption">
-                            <TextBlock Text="{Binding DisplayName}" />
-                        </DataTemplate>
-                    </ComboBox.ItemTemplate>
-                </ComboBox>
-            </StackPanel>
+            <!-- Loop -->
+            <ToggleButton
+                Classes="transport"
+                Grid.Column="5"
+                IsChecked="{Binding IsLooping}"
+                Margin="8,0,0,0"
+                ToolTip.Tip="Loop">
+                <i:Icon FontSize="11" Foreground="{Binding $parent[ToggleButton].Foreground}" Value="fa-solid fa-rotate-right" />
+            </ToggleButton>
+
+            <!-- Speed -->
+            <ComboBox
+                Grid.Column="6"
+                ItemsSource="{Binding SpeedOptions}"
+                Margin="8,0,0,0"
+                MinWidth="84"
+                SelectedItem="{Binding SelectedSpeedOption}"
+                VerticalAlignment="Center">
+                <ComboBox.ItemTemplate>
+                    <DataTemplate x:DataType="playbackModels:PlaybackSpeedOption">
+                        <TextBlock Text="{Binding DisplayName}" />
+                    </DataTemplate>
+                </ComboBox.ItemTemplate>
+            </ComboBox>
         </Grid>
     </Border>
 </UserControl>

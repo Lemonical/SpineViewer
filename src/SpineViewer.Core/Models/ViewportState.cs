@@ -24,7 +24,7 @@ public sealed record ViewportState
             false,
             true,
             true,
-            ViewportBackgroundStyle.Studio)
+            ViewportBackgroundStyle.Black)
     {
     }
 
@@ -59,7 +59,7 @@ public sealed record ViewportState
             false,
             true,
             true,
-            ViewportBackgroundStyle.Studio)
+            ViewportBackgroundStyle.Black)
     {
     }
 

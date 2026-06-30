@@ -144,6 +144,12 @@ public sealed partial class ViewerSettingsViewModel : ObservableObject, IDisposa
     private bool restoreLastSessionOnStartup = true;
 
     /// <summary>
+    /// Gets a value indicating whether the desktop shell uses the custom in-app title bar.
+    /// </summary>
+    [ObservableProperty]
+    private bool useCustomTitleBar = true;
+
+    /// <summary>
     /// Gets the last persisted window state, if available.
     /// </summary>
     [ObservableProperty]
@@ -203,6 +209,11 @@ public sealed partial class ViewerSettingsViewModel : ObservableObject, IDisposa
     }
 
     partial void OnRestoreLastSessionOnStartupChanged(bool value)
+    {
+        PersistEditableSettings();
+    }
+
+    partial void OnUseCustomTitleBarChanged(bool value)
     {
         PersistEditableSettings();
     }
@@ -274,14 +285,14 @@ public sealed partial class ViewerSettingsViewModel : ObservableObject, IDisposa
             LastWindowState = windowState,
         };
 
-        await _viewerSettingsService.SaveAsync(updatedSettings, cancellationToken).ConfigureAwait(false);
+        await _viewerSettingsService.SaveAsync(updatedSettings, cancellationToken);
         StatusText = "Window state saved.";
     }
 
     [RelayCommand]
     private async Task ResetSettingsAsync()
     {
-        await _viewerSettingsService.ResetAsync(CancellationToken.None).ConfigureAwait(false);
+        await _viewerSettingsService.ResetAsync(CancellationToken.None);
         _applicationThemeService.ApplyTheme(_viewerSettingsService.CurrentSettings.Theme);
         StatusText = "Preferences reset to defaults.";
     }
@@ -309,6 +320,7 @@ public sealed partial class ViewerSettingsViewModel : ObservableObject, IDisposa
             DefaultViewportBackgroundStyle = settings.DefaultViewportBackgroundStyle;
             RecentFilesLimit = settings.RecentFilesLimit;
             RestoreLastSessionOnStartup = settings.RestoreLastSessionOnStartup;
+            UseCustomTitleBar = settings.UseCustomTitleBar;
             PersistedWindowState = settings.LastWindowState;
         }
         finally
@@ -358,6 +370,7 @@ public sealed partial class ViewerSettingsViewModel : ObservableObject, IDisposa
             DefaultViewportBackgroundStyle = DefaultViewportBackgroundStyle,
             RecentFilesLimit = RecentFilesLimit,
             RestoreLastSessionOnStartup = RestoreLastSessionOnStartup,
+            UseCustomTitleBar = UseCustomTitleBar,
         };
 
         _ = SaveEditableSettingsAsync(updatedSettings);
@@ -367,7 +380,7 @@ public sealed partial class ViewerSettingsViewModel : ObservableObject, IDisposa
     {
         try
         {
-            await _viewerSettingsService.SaveAsync(updatedSettings, CancellationToken.None).ConfigureAwait(false);
+            await _viewerSettingsService.SaveAsync(updatedSettings, CancellationToken.None);
             _applicationThemeService.ApplyTheme(updatedSettings.Theme);
             StatusText = "Preferences saved.";
         }

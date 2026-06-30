@@ -2,113 +2,122 @@
     x:Class="SpineViewer.Features.Settings.Views.ViewerSettingsView"
     xmlns="https://github.com/avaloniaui"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:i="https://github.com/projektanker/icons.avalonia"
     xmlns:viewModels="using:SpineViewer.Features.Settings.ViewModels"
     x:DataType="viewModels:ViewerSettingsViewModel">
-    <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
-        <StackPanel Margin="4" Spacing="14">
-            <Border Background="#172234" CornerRadius="14" Padding="14">
-                <StackPanel Spacing="8">
-                    <TextBlock FontSize="18" FontWeight="SemiBold" Text="Theme and Startup" />
-                    <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12" RowDefinitions="Auto,Auto,Auto" RowSpacing="10">
-                        <TextBlock Text="Theme" VerticalAlignment="Center" />
-                        <ComboBox Grid.Column="1" ItemsSource="{Binding ThemeOptions}" SelectedItem="{Binding SelectedTheme}" />
+    <ScrollViewer HorizontalScrollBarVisibility="Disabled" Padding="0,0,18,0" VerticalScrollBarVisibility="Auto">
+        <StackPanel Spacing="16">
 
-                        <TextBlock Grid.Row="1" Text="Restore Session" VerticalAlignment="Center" />
-                        <CheckBox Grid.Column="1" Grid.Row="1" IsChecked="{Binding RestoreLastSessionOnStartup}" />
+            <!-- Appearance -->
+            <StackPanel Spacing="8">
+                <TextBlock Classes="section" Text="APPEARANCE" />
+                <Grid ColumnDefinitions="*,Auto" Margin="0,2">
+                    <TextBlock FontSize="12" Text="Theme" VerticalAlignment="Center" />
+                    <ComboBox
+                        Grid.Column="1"
+                        ItemsSource="{Binding ThemeOptions}"
+                        MinWidth="100"
+                        SelectedItem="{Binding SelectedTheme}" />
+                </Grid>
+                <Grid ColumnDefinitions="*,Auto" Margin="0,2">
+                    <TextBlock FontSize="12" Text="Restore session" VerticalAlignment="Center" />
+                    <ToggleSwitch Grid.Column="1" IsChecked="{Binding RestoreLastSessionOnStartup}" />
+                </Grid>
+                <Grid ColumnDefinitions="*,Auto" Margin="0,2">
+                    <TextBlock FontSize="12" Text="Custom title bar" VerticalAlignment="Center" />
+                    <ToggleSwitch Grid.Column="1" IsChecked="{Binding UseCustomTitleBar}" />
+                </Grid>
+                <TextBlock Classes="hint" FontSize="10" Text="{Binding WindowStateSummaryText}" TextWrapping="Wrap" />
+            </StackPanel>
 
-                        <TextBlock Grid.Row="2" Text="Window State" VerticalAlignment="Center" />
-                        <TextBlock Grid.Column="1" Grid.Row="2" Classes="hint" Text="{Binding WindowStateSummaryText}" TextWrapping="Wrap" />
-                    </Grid>
-                </StackPanel>
-            </Border>
+            <!-- Default overlays -->
+            <StackPanel Spacing="8">
+                <TextBlock Classes="section" Text="DEFAULT OVERLAYS" />
+                <WrapPanel>
+                    <ToggleButton Classes="pill" Content="Grid" IsChecked="{Binding ShowGridByDefault}" Margin="0,0,4,4" />
+                    <ToggleButton Classes="pill" Content="Origin" IsChecked="{Binding ShowOriginByDefault}" Margin="0,0,4,4" />
+                    <ToggleButton Classes="pill" Content="Bones" IsChecked="{Binding ShowBonesByDefault}" Margin="0,0,4,4" />
+                    <ToggleButton Classes="pill" Content="Bounds" IsChecked="{Binding ShowBoundsByDefault}" Margin="0,0,4,4" />
+                    <ToggleButton Classes="pill" Content="Mesh" IsChecked="{Binding ShowMeshWireframeByDefault}" Margin="0,0,4,4" />
+                    <ToggleButton Classes="pill" Content="Slots" IsChecked="{Binding ShowSlotOutlinesByDefault}" Margin="0,0,4,4" />
+                    <ToggleButton Classes="pill" Content="Labels" IsChecked="{Binding ShowLabelsByDefault}" Margin="0,0,4,4" />
+                    <ToggleButton Classes="pill" Content="Missing" IsChecked="{Binding ShowMissingResourceIndicatorsByDefault}" Margin="0,0,4,4" />
+                    <ToggleButton Classes="pill" Content="Warn" IsChecked="{Binding ShowUnsupportedFeatureIndicatorsByDefault}" Margin="0,0,4,4" />
+                </WrapPanel>
+            </StackPanel>
 
-            <Border Background="#172234" CornerRadius="14" Padding="14">
-                <StackPanel Spacing="8">
-                    <TextBlock FontSize="18" FontWeight="SemiBold" Text="Default Overlays" />
-                    <WrapPanel Orientation="Horizontal">
-                        <CheckBox Content="Grid" IsChecked="{Binding ShowGridByDefault}" />
-                        <CheckBox Content="Origin" IsChecked="{Binding ShowOriginByDefault}" Margin="12,0,0,0" />
-                        <CheckBox Content="Bones" IsChecked="{Binding ShowBonesByDefault}" Margin="12,0,0,0" />
-                        <CheckBox Content="Bounds" IsChecked="{Binding ShowBoundsByDefault}" Margin="12,0,0,0" />
-                    </WrapPanel>
-                    <WrapPanel Orientation="Horizontal">
-                        <CheckBox Content="Mesh" IsChecked="{Binding ShowMeshWireframeByDefault}" />
-                        <CheckBox Content="Slots" IsChecked="{Binding ShowSlotOutlinesByDefault}" Margin="12,0,0,0" />
-                        <CheckBox Content="Labels" IsChecked="{Binding ShowLabelsByDefault}" Margin="12,0,0,0" />
-                    </WrapPanel>
-                    <WrapPanel Orientation="Horizontal">
-                        <CheckBox Content="Missing Resources" IsChecked="{Binding ShowMissingResourceIndicatorsByDefault}" />
-                        <CheckBox Content="Warnings" IsChecked="{Binding ShowUnsupportedFeatureIndicatorsByDefault}" Margin="12,0,0,0" />
-                    </WrapPanel>
-                </StackPanel>
-            </Border>
+            <!-- Playback -->
+            <StackPanel Spacing="8">
+                <TextBlock Classes="section" Text="PLAYBACK" />
+                <Grid ColumnDefinitions="*,Auto" Margin="0,2">
+                    <TextBlock FontSize="12" Text="Loop by default" VerticalAlignment="Center" />
+                    <ToggleSwitch Grid.Column="1" IsChecked="{Binding LoopPlaybackByDefault}" />
+                </Grid>
+                <Grid ColumnDefinitions="*,Auto" Margin="0,2">
+                    <TextBlock FontSize="12" Text="Default speed" VerticalAlignment="Center" />
+                    <NumericUpDown
+                        Grid.Column="1"
+                        Increment="0.05"
+                        Maximum="4.0"
+                        Minimum="0.1"
+                        MinWidth="110"
+                        Value="{Binding DefaultPlaybackSpeed}" />
+                </Grid>
+                <Grid ColumnDefinitions="*,Auto" Margin="0,2">
+                    <TextBlock FontSize="12" Text="Track speed" VerticalAlignment="Center" />
+                    <NumericUpDown
+                        Grid.Column="1"
+                        Increment="0.05"
+                        Maximum="4.0"
+                        Minimum="0.1"
+                        MinWidth="110"
+                        Value="{Binding DefaultTrackTimeScale}" />
+                </Grid>
+                <Grid ColumnDefinitions="*,Auto" Margin="0,2">
+                    <TextBlock FontSize="12" Text="Track mix (s)" VerticalAlignment="Center" />
+                    <NumericUpDown
+                        Grid.Column="1"
+                        Increment="0.05"
+                        Maximum="5"
+                        Minimum="0"
+                        MinWidth="110"
+                        Value="{Binding DefaultTrackMixDurationSeconds}" />
+                </Grid>
+            </StackPanel>
 
-            <Border Background="#172234" CornerRadius="14" Padding="14">
-                <StackPanel Spacing="8">
-                    <TextBlock FontSize="18" FontWeight="SemiBold" Text="Playback Defaults" />
-                    <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12" RowDefinitions="Auto,Auto,Auto,Auto" RowSpacing="10">
-                        <TextBlock Text="Loop" VerticalAlignment="Center" />
-                        <CheckBox Grid.Column="1" IsChecked="{Binding LoopPlaybackByDefault}" />
+            <!-- Viewport & recents -->
+            <StackPanel Spacing="8">
+                <TextBlock Classes="section" Text="VIEWPORT &amp; RECENTS" />
+                <Grid ColumnDefinitions="*,Auto" Margin="0,2">
+                    <TextBlock FontSize="12" Text="Background" VerticalAlignment="Center" />
+                    <ComboBox
+                        Grid.Column="1"
+                        ItemsSource="{Binding BackgroundOptions}"
+                        MinWidth="110"
+                        SelectedItem="{Binding DefaultViewportBackgroundStyle}" />
+                </Grid>
+                <Grid ColumnDefinitions="*,Auto" Margin="0,2">
+                    <TextBlock FontSize="12" Text="Recent limit" VerticalAlignment="Center" />
+                    <NumericUpDown
+                        Grid.Column="1"
+                        Increment="1"
+                        Maximum="50"
+                        Minimum="1"
+                        MinWidth="110"
+                        Value="{Binding RecentFilesLimit}" />
+                </Grid>
+            </StackPanel>
 
-                        <TextBlock Grid.Row="1" Text="Global Speed" VerticalAlignment="Center" />
-                        <NumericUpDown
-                            Grid.Column="1"
-                            Grid.Row="1"
-                            Increment="0.05"
-                            Minimum="0.1"
-                            Maximum="4.0"
-                            Value="{Binding DefaultPlaybackSpeed}" />
-
-                        <TextBlock Grid.Row="2" Text="Track Speed" VerticalAlignment="Center" />
-                        <NumericUpDown
-                            Grid.Column="1"
-                            Grid.Row="2"
-                            Increment="0.05"
-                            Minimum="0.1"
-                            Maximum="4.0"
-                            Value="{Binding DefaultTrackTimeScale}" />
-
-                        <TextBlock Grid.Row="3" Text="Track Mix (s)" VerticalAlignment="Center" />
-                        <NumericUpDown
-                            Grid.Column="1"
-                            Grid.Row="3"
-                            Increment="0.05"
-                            Minimum="0"
-                            Maximum="5"
-                            Value="{Binding DefaultTrackMixDurationSeconds}" />
-                    </Grid>
-                </StackPanel>
-            </Border>
-
-            <Border Background="#172234" CornerRadius="14" Padding="14">
-                <StackPanel Spacing="8">
-                    <TextBlock FontSize="18" FontWeight="SemiBold" Text="Viewport and Recent Files" />
-                    <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12" RowDefinitions="Auto,Auto" RowSpacing="10">
-                        <TextBlock Text="Background" VerticalAlignment="Center" />
-                        <ComboBox
-                            Grid.Column="1"
-                            ItemsSource="{Binding BackgroundOptions}"
-                            SelectedItem="{Binding DefaultViewportBackgroundStyle}" />
-
-                        <TextBlock Grid.Row="1" Text="Recent Limit" VerticalAlignment="Center" />
-                        <NumericUpDown
-                            Grid.Column="1"
-                            Grid.Row="1"
-                            Increment="1"
-                            Minimum="1"
-                            Maximum="50"
-                            Value="{Binding RecentFilesLimit}" />
-                    </Grid>
-                </StackPanel>
-            </Border>
-
-            <Border Background="#172234" CornerRadius="14" Padding="14">
-                <StackPanel Spacing="10">
-                    <TextBlock FontWeight="SemiBold" Text="Persistence" />
-                    <TextBlock Classes="hint" Text="{Binding StatusText}" TextWrapping="Wrap" />
-                    <Button Command="{Binding ResetSettingsCommand}" Content="Reset to Defaults" HorizontalAlignment="Left" />
-                </StackPanel>
-            </Border>
+            <!-- Persistence -->
+            <StackPanel Spacing="8">
+                <TextBlock Classes="section" Text="PERSISTENCE" />
+                <TextBlock Classes="hint" Text="{Binding StatusText}" TextWrapping="Wrap" />
+                <Button
+                    Command="{Binding ResetSettingsCommand}"
+                    Content="Reset to Defaults"
+                    HorizontalAlignment="Left"
+                    i:Attached.Icon="fa-solid fa-rotate-left" />
+            </StackPanel>
         </StackPanel>
     </ScrollViewer>
 </UserControl>

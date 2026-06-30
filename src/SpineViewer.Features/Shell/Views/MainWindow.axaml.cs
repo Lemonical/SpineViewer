@@ -1,11 +1,15 @@
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Controls.Chrome;
 using Avalonia.Input;
-using Avalonia.Interactivity;
 using Avalonia.Markup.Xaml;
-using Avalonia.Platform.Storage;
+using Avalonia.Platform;
+using Avalonia.Threading;
 using SpineViewer.Core.Models;
+using SpineViewer.Features.Settings.ViewModels;
 using SpineViewer.Features.Shell.ViewModels;
+using System.Diagnostics;
+using System.ComponentModel;
 
 namespace SpineViewer.Features.Shell.Views;
 
@@ -14,11 +18,14 @@ namespace SpineViewer.Features.Shell.Views;
 /// </summary>
 public partial class MainWindow : Window
 {
-    private readonly Border _detailsPane;
-    private readonly Grid _shellContentGrid;
-    private readonly Border _viewportPane;
-    private readonly Border _workspacePane;
+    private readonly IReadOnlyList<(
+        Control Grip,
+        WindowDecorationsElementRole Role,
+        WindowEdge Edge)> _customChromeResizeGrips;
+    private bool _isCloseConfirmed;
+    private bool _isPersistingClose;
     private bool _isApplyingPersistedWindowState;
+    private ViewerSettingsViewModel? _trackedSettingsViewModel;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="MainWindow"/> class.
@@ -27,22 +34,33 @@ public partial class MainWindow : Window
     {
         AvaloniaXamlLoader.Load(this);
 
-        _shellContentGrid = this.FindControl<Grid>("ShellContentGrid")
-            ?? throw new InvalidOperationException("The shell content grid could not be located.");
-        _workspacePane = this.FindControl<Border>("WorkspacePane")
-            ?? throw new InvalidOperationException("The workspace pane could not be located.");
-        _viewportPane = this.FindControl<Border>("ViewportPane")
-            ?? throw new InvalidOperationException("The viewport pane could not be located.");
-        _detailsPane = this.FindControl<Border>("DetailsPane")
-            ?? throw new InvalidOperationException("The details pane could not be located.");
+        _customChromeResizeGrips =
+        [
+            (FindRequiredControl("ResizeNorthGrip"), WindowDecorationsElementRole.ResizeN, WindowEdge.North),
+            (FindRequiredControl("ResizeSouthGrip"), WindowDecorationsElementRole.ResizeS, WindowEdge.South),
+            (FindRequiredControl("ResizeEastGrip"), WindowDecorationsElementRole.ResizeE, WindowEdge.East),
+            (FindRequiredControl("ResizeWestGrip"), WindowDecorationsElementRole.ResizeW, WindowEdge.West),
+            (FindRequiredControl("ResizeNorthWestGrip"), WindowDecorationsElementRole.ResizeNW, WindowEdge.NorthWest),
+            (FindRequiredControl("ResizeNorthEastGrip"), WindowDecorationsElementRole.ResizeNE, WindowEdge.NorthEast),
+            (FindRequiredControl("ResizeSouthWestGrip"), WindowDecorationsElementRole.ResizeSW, WindowEdge.SouthWest),
+            (FindRequiredControl("ResizeSouthEastGrip"), WindowDecorationsElementRole.ResizeSE, WindowEdge.SouthEast),
+        ];
 
-        DragDrop.SetAllowDrop(this, true);
-        DragDrop.AddDragOverHandler(this, OnDragOver);
-        DragDrop.AddDropHandler(this, OnDrop);
+        foreach ((Control grip, _, _) in _customChromeResizeGrips)
+        {
+            grip.PointerPressed += OnCustomChromeResizeGripPointerPressed;
+        }
+
+        Icon = new WindowIcon(AssetLoader.Open(new Uri("avares://SpineViewer.Features/Assets/favicon.ico")));
         Closing += OnClosing;
-        Opened += OnOpened;
-        SizeChanged += OnWindowSizeChanged;
         DataContextChanged += OnDataContextChanged;
+        Opened += OnOpened;
+    }
+
+    private void OnOpened(object? sender, EventArgs e)
+    {
+        ApplyPersistedWindowState();
+        ApplyWindowChromePreference();
     }
 
     /// <summary>
@@ -53,124 +71,6 @@ public partial class MainWindow : Window
         : this()
     {
         DataContext = viewModel;
-    }
-
-    private void ApplyResponsiveLayout()
-    {
-        if (DataContext is not MainWindowViewModel viewModel)
-        {
-            return;
-        }
-
-        viewModel.UpdateLayoutWidth(Bounds.Width);
-
-        if (viewModel.IsCompactLayout)
-        {
-            _shellContentGrid.ColumnDefinitions = new ColumnDefinitions("*");
-            _shellContentGrid.RowDefinitions = new RowDefinitions("*,Auto,Auto");
-            _shellContentGrid.ColumnSpacing = 0;
-            _shellContentGrid.RowSpacing = 12;
-
-            Grid.SetColumn(_viewportPane, 0);
-            Grid.SetRow(_viewportPane, 0);
-            Grid.SetColumn(_workspacePane, 0);
-            Grid.SetRow(_workspacePane, 1);
-            Grid.SetColumn(_detailsPane, 0);
-            Grid.SetRow(_detailsPane, 2);
-            return;
-        }
-
-        _shellContentGrid.ColumnDefinitions = new ColumnDefinitions("Auto,*,Auto");
-        _shellContentGrid.RowDefinitions = new RowDefinitions("*");
-        _shellContentGrid.ColumnSpacing = 16;
-        _shellContentGrid.RowSpacing = 0;
-
-        Grid.SetColumn(_workspacePane, 0);
-        Grid.SetRow(_workspacePane, 0);
-        Grid.SetColumn(_viewportPane, 1);
-        Grid.SetRow(_viewportPane, 0);
-        Grid.SetColumn(_detailsPane, 2);
-        Grid.SetRow(_detailsPane, 0);
-    }
-
-    private void OnDataContextChanged(object? sender, EventArgs e)
-    {
-        ApplyResponsiveLayout();
-    }
-
-    private void OnOpened(object? sender, EventArgs e)
-    {
-        ApplyPersistedWindowState();
-        ApplyResponsiveLayout();
-    }
-
-    private async void OnOpenModelClick(object? sender, RoutedEventArgs e)
-    {
-        if (DataContext is not MainWindowViewModel viewModel || !viewModel.CanStartOpenFlow)
-        {
-            return;
-        }
-
-        TopLevel? topLevel = TopLevel.GetTopLevel(this);
-        IStorageProvider? storageProvider = topLevel?.StorageProvider;
-        if (storageProvider?.CanOpen != true)
-        {
-            return;
-        }
-
-        IReadOnlyList<IStorageFile> selectedFiles = await storageProvider
-            .OpenFilePickerAsync(
-                new FilePickerOpenOptions
-                {
-                    AllowMultiple = true,
-                    FileTypeFilter =
-                    [
-                        new FilePickerFileType("Spine Files")
-                        {
-                            Patterns = ["*.atlas", "*.json", "*.skel", "*.bytes"],
-                        },
-                    ],
-                    Title = "Open Spine Files",
-                })
-            .ConfigureAwait(true);
-
-        IReadOnlyList<string> selectedPaths = GetLocalFilePaths(selectedFiles);
-        if (selectedPaths.Count == 0)
-        {
-            return;
-        }
-
-        await viewModel.OpenFilesAsync(selectedPaths, CancellationToken.None).ConfigureAwait(true);
-    }
-
-    private void OnDragOver(object? sender, DragEventArgs e)
-    {
-        e.DragEffects = HasLocalFilePaths(e.DataTransfer)
-            ? DragDropEffects.Copy
-            : DragDropEffects.None;
-        e.Handled = true;
-    }
-
-    private async void OnDrop(object? sender, DragEventArgs e)
-    {
-        if (DataContext is not MainWindowViewModel viewModel || !viewModel.CanStartOpenFlow)
-        {
-            return;
-        }
-
-        IReadOnlyList<string> selectedPaths = GetLocalFilePaths(e.DataTransfer.TryGetFiles());
-        if (selectedPaths.Count == 0)
-        {
-            return;
-        }
-
-        await viewModel.OpenFilesAsync(selectedPaths, CancellationToken.None).ConfigureAwait(true);
-        e.Handled = true;
-    }
-
-    private void OnWindowSizeChanged(object? sender, SizeChangedEventArgs e)
-    {
-        ApplyResponsiveLayout();
     }
 
     private void ApplyPersistedWindowState()
@@ -205,54 +105,159 @@ public partial class MainWindow : Window
         }
     }
 
+    private void ApplyWindowChromePreference()
+    {
+        bool useCustomTitleBar = DataContext is MainWindowViewModel { Settings.UseCustomTitleBar: true };
+        ExtendClientAreaToDecorationsHint = useCustomTitleBar;
+        ExtendClientAreaTitleBarHeightHint = useCustomTitleBar ? 44 : -1;
+        WindowDecorations = useCustomTitleBar
+            ? WindowDecorations.None
+            : WindowDecorations.Full;
+        RefreshCustomChromeResizeGrips(useCustomTitleBar && CanResize);
+    }
+
     private void OnClosing(object? sender, WindowClosingEventArgs e)
     {
-        if (DataContext is not MainWindowViewModel viewModel)
+        if (_isCloseConfirmed)
+        {
+            UpdateTrackedSettingsViewModel(null);
+            return;
+        }
+
+        if (_isPersistingClose)
+        {
+            e.Cancel = true;
+            return;
+        }
+
+        e.Cancel = true;
+        _isPersistingClose = true;
+        _ = PersistWindowStateAndCloseAsync();
+    }
+
+    private void OnDataContextChanged(object? sender, EventArgs e)
+    {
+        UpdateTrackedSettingsViewModel((DataContext as MainWindowViewModel)?.Settings);
+        ApplyPersistedWindowState();
+        ApplyWindowChromePreference();
+    }
+
+    private void OnTrackedSettingsPropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName is null || e.PropertyName == nameof(ViewerSettingsViewModel.UseCustomTitleBar))
+        {
+            ApplyWindowChromePreference();
+        }
+
+        if (e.PropertyName is null || e.PropertyName == nameof(ViewerSettingsViewModel.PersistedWindowState))
+        {
+            ApplyPersistedWindowState();
+        }
+    }
+
+    private void UpdateTrackedSettingsViewModel(ViewerSettingsViewModel? settingsViewModel)
+    {
+        if (ReferenceEquals(_trackedSettingsViewModel, settingsViewModel))
         {
             return;
         }
 
-        ViewerWindowState persistedWindowState = new(
+        if (_trackedSettingsViewModel is not null)
+        {
+            _trackedSettingsViewModel.PropertyChanged -= OnTrackedSettingsPropertyChanged;
+        }
+
+        _trackedSettingsViewModel = settingsViewModel;
+
+        if (_trackedSettingsViewModel is not null)
+        {
+            _trackedSettingsViewModel.PropertyChanged += OnTrackedSettingsPropertyChanged;
+        }
+    }
+
+    private static string GetWindowStatePersistenceErrorMessage(Exception exception)
+    {
+        return $"Failed to persist the window state during shutdown: {exception}";
+    }
+
+    private ViewerWindowState CreatePersistedWindowState()
+    {
+        return new ViewerWindowState(
             Bounds.Width,
             Bounds.Height,
             Position.X,
             Position.Y,
             WindowState == WindowState.Maximized);
-        viewModel.Settings.PersistWindowStateAsync(persistedWindowState, CancellationToken.None).GetAwaiter().GetResult();
     }
 
-    private static IReadOnlyList<string> GetLocalFilePaths(IEnumerable<IStorageItem>? storageItems)
+    private Control FindRequiredControl(string controlName)
     {
-        if (storageItems is null)
-        {
-            return Array.Empty<string>();
-        }
+        return this.FindControl<Control>(controlName)
+            ?? throw new InvalidOperationException($"The {controlName} control could not be located.");
+    }
 
-        List<string> selectedPaths = [];
-
-        foreach (IStorageItem storageItem in storageItems)
+    private async Task PersistWindowStateAndCloseAsync()
+    {
+        try
         {
-            using (storageItem)
+            if (DataContext is MainWindowViewModel viewModel)
             {
-                if (storageItem is not IStorageFile)
-                {
-                    continue;
-                }
-
-                string? localPath = storageItem.TryGetLocalPath();
-                if (!string.IsNullOrWhiteSpace(localPath))
-                {
-                    selectedPaths.Add(localPath);
-                }
+                await viewModel.Settings
+                    .PersistWindowStateAsync(CreatePersistedWindowState(), CancellationToken.None)
+                    .ConfigureAwait(true);
             }
         }
-
-        return selectedPaths;
+        catch (Exception exception)
+        {
+            Trace.TraceError(GetWindowStatePersistenceErrorMessage(exception));
+        }
+        finally
+        {
+            _isCloseConfirmed = true;
+            _isPersistingClose = false;
+            await Dispatcher.UIThread.InvokeAsync(Close);
+        }
     }
 
-    private static bool HasLocalFilePaths(IDataTransfer dataTransfer)
+    private void RefreshCustomChromeResizeGrips(bool enableCustomResizeGrips)
     {
-        IEnumerable<IStorageItem>? storageItems = dataTransfer.TryGetFiles();
-        return storageItems is not null && storageItems.Any(static storageItem => storageItem is IStorageFile);
+        foreach ((Control grip, WindowDecorationsElementRole role, _) in _customChromeResizeGrips)
+        {
+            grip.IsVisible = enableCustomResizeGrips;
+            WindowDecorationProperties.SetElementRole(
+                grip,
+                enableCustomResizeGrips
+                    ? role
+                    : WindowDecorationsElementRole.None);
+        }
+    }
+
+    private void OnCustomChromeResizeGripPointerPressed(object? sender, PointerPressedEventArgs e)
+    {
+        if (sender is not Control grip ||
+            !e.GetCurrentPoint(grip).Properties.IsLeftButtonPressed ||
+            !ShouldUseCustomResizeGrips() ||
+            WindowState != WindowState.Normal)
+        {
+            return;
+        }
+
+        WindowEdge? edge = _customChromeResizeGrips
+            .Where(tuple => ReferenceEquals(tuple.Grip, grip))
+            .Select(tuple => (WindowEdge?)tuple.Edge)
+            .FirstOrDefault();
+        if (!edge.HasValue)
+        {
+            return;
+        }
+
+        BeginResizeDrag(edge.Value, e);
+        e.Handled = true;
+    }
+
+    private bool ShouldUseCustomResizeGrips()
+    {
+        return CanResize &&
+            DataContext is MainWindowViewModel { Settings.UseCustomTitleBar: true };
     }
 }

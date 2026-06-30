@@ -3,7 +3,18 @@
     xmlns="https://github.com/avaloniaui"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     RequestedThemeVariant="Dark">
+    <Application.Resources>
+        <!-- Recolor Fluent's accent so sliders, checkboxes, tab pipes, and focus match the Studio amber. -->
+        <Color x:Key="SystemAccentColor">#D4915A</Color>
+        <Color x:Key="SystemAccentColorLight1">#DFA46E</Color>
+        <Color x:Key="SystemAccentColorLight2">#E6B484</Color>
+        <Color x:Key="SystemAccentColorLight3">#EDC59C</Color>
+        <Color x:Key="SystemAccentColorDark1">#C07E48</Color>
+        <Color x:Key="SystemAccentColorDark2">#A86B3A</Color>
+        <Color x:Key="SystemAccentColorDark3">#8F592D</Color>
+    </Application.Resources>
     <Application.Styles>
         <FluentTheme />
+        <StyleInclude Source="avares://SpineViewer.App/Theme/SpineViewerTheme.axaml" />
     </Application.Styles>
 </Application>

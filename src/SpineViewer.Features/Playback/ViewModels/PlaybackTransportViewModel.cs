@@ -67,6 +67,11 @@ public sealed partial class PlaybackTransportViewModel : ObservableObject, IDisp
     public string StatusText => _currentPlaybackState.Status.ToString();
 
     /// <summary>
+    /// Gets a value indicating whether the transport is currently stopped.
+    /// </summary>
+    public bool IsStopped => HasActiveSession && _currentPlaybackState.IsStopped;
+
+    /// <summary>
     /// Gets the visible current-time label.
     /// </summary>
     public string CurrentTimeText => FormatTimestamp(_currentPlaybackState.CurrentTime);
@@ -103,6 +108,12 @@ public sealed partial class PlaybackTransportViewModel : ObservableObject, IDisp
     [NotifyCanExecuteChangedFor(nameof(TogglePlayPauseCommand))]
     [NotifyCanExecuteChangedFor(nameof(ToggleLoopCommand))]
     private bool hasActiveSession;
+
+    /// <summary>
+    /// Gets a value indicating whether playback is currently running.
+    /// </summary>
+    [ObservableProperty]
+    private bool isPlaying;
 
     /// <summary>
     /// Gets a value indicating whether looping is enabled.
@@ -225,11 +236,13 @@ public sealed partial class PlaybackTransportViewModel : ObservableObject, IDisp
         try
         {
             HasActiveSession = workspaceState.CurrentSession is not null;
+            IsPlaying = _currentPlaybackState.IsPlaying;
             IsLooping = _currentPlaybackState.IsLooping;
             TimelinePositionSeconds = _currentPlaybackState.CurrentTime.TotalSeconds;
             SelectedSpeedOption = SelectSpeedOption(_currentPlaybackState.Speed);
 
             OnPropertyChanged(nameof(StatusText));
+            OnPropertyChanged(nameof(IsStopped));
             OnPropertyChanged(nameof(CurrentTimeText));
             OnPropertyChanged(nameof(DurationText));
             OnPropertyChanged(nameof(TimeSummaryText));

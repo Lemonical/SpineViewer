@@ -1,0 +1,510 @@
+<UserControl
+    x:Class="SpineViewer.Features.Shell.Views.MainShellView"
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:chrome="using:Avalonia.Controls.Chrome"
+    xmlns:coreModels="using:SpineViewer.Core.Models"
+    xmlns:diagnosticsViews="using:SpineViewer.Features.Diagnostics.Views"
+    xmlns:i="https://github.com/projektanker/icons.avalonia"
+    xmlns:inspectorViews="using:SpineViewer.Features.Inspector.Views"
+    xmlns:playbackViews="using:SpineViewer.Features.Playback.Views"
+    xmlns:settingsViews="using:SpineViewer.Features.Settings.Views"
+    xmlns:shellModels="using:SpineViewer.Features.Shell.Models"
+    xmlns:viewModels="using:SpineViewer.Features.Shell.ViewModels"
+    xmlns:viewportViews="using:SpineViewer.Features.Viewport.Views"
+    Background="{DynamicResource SurfaceBase}"
+    x:DataType="viewModels:MainWindowViewModel">
+    <UserControl.KeyBindings>
+        <KeyBinding Command="{Binding Viewport.FitToViewCommand}" Gesture="F" />
+        <KeyBinding Command="{Binding Viewport.ResetCameraCommand}" Gesture="D0" />
+        <KeyBinding Command="{Binding Viewport.ToggleGridCommand}" Gesture="G" />
+        <KeyBinding Command="{Binding Viewport.ToggleOriginCommand}" Gesture="O" />
+        <KeyBinding Command="{Binding Viewport.CycleBackgroundCommand}" Gesture="B" />
+        <KeyBinding Command="{Binding Playback.TogglePlayPauseCommand}" Gesture="Space" />
+        <KeyBinding Command="{Binding Playback.StopCommand}" Gesture="S" />
+        <KeyBinding Command="{Binding Playback.RestartCommand}" Gesture="R" />
+        <KeyBinding Command="{Binding Playback.ToggleLoopCommand}" Gesture="L" />
+        <KeyBinding Command="{Binding Playback.FrameStepCommand}" Gesture="Right" />
+        <KeyBinding Command="{Binding RetryLastOpenCommand}" Gesture="Ctrl+Shift+R" />
+    </UserControl.KeyBindings>
+
+    <Grid RowDefinitions="Auto,*,Auto">
+
+        <!-- ============================ HEADER ============================ -->
+        <Border
+            x:Name="TitleBarBorder"
+            Background="{DynamicResource SurfaceBase}"
+            BorderBrush="{DynamicResource LineSubtle}"
+            BorderThickness="0,0,0,1"
+            Height="44">
+            <Grid ColumnDefinitions="Auto,Auto,Auto,*,Auto,Auto,Auto,Auto" Margin="12,0,8,0">
+                <Border
+                    x:Name="TitleBarDragRegion"
+                    Background="Transparent"
+                    Grid.Column="3"
+                    MinWidth="12" />
+
+                <!-- Brand -->
+                <StackPanel
+                    x:Name="BrandHost"
+                    Orientation="Horizontal"
+                    Spacing="6"
+                    VerticalAlignment="Center">
+                    <Image Height="18" Source="avares://SpineViewer.Features/Assets/icon_dark.png" Stretch="Uniform" Width="18" />
+                    <TextBlock Classes="brand" Text="SpineViewer" VerticalAlignment="Center" />
+                </StackPanel>
+
+                <Border Classes="divider" Grid.Column="1" Margin="10,0" />
+
+                <!-- Session summary -->
+                <StackPanel
+                    x:Name="SessionSummaryHost"
+                    Grid.Column="2"
+                    Orientation="Horizontal"
+                    Spacing="8"
+                    VerticalAlignment="Center">
+                    <TextBlock
+                        FontSize="12"
+                        FontWeight="Medium"
+                        Foreground="{DynamicResource TextPrimary}"
+                        Text="{Binding HeaderModelName}"
+                        VerticalAlignment="Center" />
+                    <Border Classes="badge" IsVisible="{Binding HasHeaderVersion}">
+                        <TextBlock
+                            FontSize="10"
+                            FontWeight="SemiBold"
+                            Foreground="{DynamicResource Success}"
+                            Text="{Binding HeaderVersionText}" />
+                    </Border>
+                </StackPanel>
+
+                <!-- Pane toggles -->
+                <ToggleButton
+                    Classes="pill"
+                    Grid.Column="4"
+                    IsChecked="{Binding IsWorkspacePaneVisible}"
+                    Padding="6"
+                    ToolTip.Tip="Toggle workspace pane"
+                    chrome:WindowDecorationProperties.ElementRole="User"
+                    VerticalAlignment="Center">
+                    <Viewbox Width="14" Height="14">
+                        <Canvas Width="16" Height="16">
+                            <Rectangle
+                                Height="12"
+                                RadiusX="2"
+                                RadiusY="2"
+                                Stroke="{Binding $parent[ToggleButton].Foreground}"
+                                StrokeThickness="1.3"
+                                Canvas.Left="1"
+                                Canvas.Top="2"
+                                Width="14" />
+                            <Line
+                                EndPoint="5.5,14"
+                                StartPoint="5.5,2"
+                                Stroke="{Binding $parent[ToggleButton].Foreground}"
+                                StrokeThickness="1.3" />
+                        </Canvas>
+                    </Viewbox>
+                </ToggleButton>
+                <ToggleButton
+                    Classes="pill"
+                    Grid.Column="5"
+                    IsChecked="{Binding IsDetailsPaneVisible}"
+                    Margin="6,0,0,0"
+                    Padding="6"
+                    ToolTip.Tip="Toggle details pane"
+                    chrome:WindowDecorationProperties.ElementRole="User"
+                    VerticalAlignment="Center">
+                    <Viewbox Width="14" Height="14">
+                        <Canvas Width="16" Height="16">
+                            <Rectangle
+                                Height="12"
+                                RadiusX="2"
+                                RadiusY="2"
+                                Stroke="{Binding $parent[ToggleButton].Foreground}"
+                                StrokeThickness="1.3"
+                                Canvas.Left="1"
+                                Canvas.Top="2"
+                                Width="14" />
+                            <Line
+                                EndPoint="10.5,14"
+                                StartPoint="10.5,2"
+                                Stroke="{Binding $parent[ToggleButton].Foreground}"
+                                StrokeThickness="1.3" />
+                        </Canvas>
+                    </Viewbox>
+                </ToggleButton>
+
+                <!-- Settings (gear) -->
+                <Button
+                    Classes="icon"
+                    Grid.Column="6"
+                    Margin="6,0,0,0"
+                    ToolTip.Tip="Settings"
+                    chrome:WindowDecorationProperties.ElementRole="User"
+                    VerticalAlignment="Center">
+                    <Viewbox Width="15" Height="15">
+                        <Path
+                            Data="M12 21a8.985 8.985 0 0 1-1.755-.173 1 1 0 0 1-.791-.813l-.273-1.606a6.933 6.933 0 0 1-1.32-.762l-1.527.566a1 1 0 0 1-1.1-.278 8.977 8.977 0 0 1-1.756-3.041 1 1 0 0 1 .31-1.092l1.254-1.04a6.979 6.979 0 0 1 0-1.524L3.787 10.2a1 1 0 0 1-.31-1.092 8.977 8.977 0 0 1 1.756-3.042 1 1 0 0 1 1.1-.278l1.527.566a6.933 6.933 0 0 1 1.32-.762l.274-1.606a1 1 0 0 1 .791-.813 8.957 8.957 0 0 1 3.51 0 1 1 0 0 1 .791.813l.273 1.606a6.933 6.933 0 0 1 1.32.762l1.527-.566a1 1 0 0 1 1.1.278 8.977 8.977 0 0 1 1.756 3.041 1 1 0 0 1-.31 1.092l-1.254 1.04a6.979 6.979 0 0 1 0 1.524l1.254 1.04a1 1 0 0 1 .31 1.092 8.977 8.977 0 0 1-1.756 3.041 1 1 0 0 1-1.1.278l-1.527-.566a6.933 6.933 0 0 1-1.32.762l-.273 1.606a1 1 0 0 1-.791.813A8.985 8.985 0 0 1 12 21zm-.7-2.035a6.913 6.913 0 0 0 1.393 0l.247-1.451a1 1 0 0 1 .664-.779 4.974 4.974 0 0 0 1.696-.975 1 1 0 0 1 1.008-.186l1.381.512a7.012 7.012 0 0 0 .7-1.206l-1.133-.939a1 1 0 0 1-.343-.964 5.018 5.018 0 0 0 0-1.953 1 1 0 0 1 .343-.964l1.124-.94a7.012 7.012 0 0 0-.7-1.206l-1.38.512a1 1 0 0 1-1-.186 4.974 4.974 0 0 0-1.688-.976 1 1 0 0 1-.664-.779l-.248-1.45a6.913 6.913 0 0 0-1.393 0l-.25 1.45a1 1 0 0 1-.664.779A4.974 4.974 0 0 0 8.7 8.24a1 1 0 0 1-1 .186l-1.385-.512a7.012 7.012 0 0 0-.7 1.206l1.133.939a1 1 0 0 1 .343.964 5.018 5.018 0 0 0 0 1.953 1 1 0 0 1-.343.964l-1.128.94a7.012 7.012 0 0 0 .7 1.206l1.38-.512a1 1 0 0 1 1 .186 4.974 4.974 0 0 0 1.688.976 1 1 0 0 1 .664.779zm.7-3.725a3.24 3.24 0 0 1 0-6.48 3.24 3.24 0 0 1 0 6.48zm0-4.48A1.24 1.24 0 1 0 13.24 12 1.244 1.244 0 0 0 12 10.76z"
+                            Fill="{Binding $parent[Button].Foreground}" />
+                    </Viewbox>
+                    <Button.Flyout>
+                        <Flyout FlyoutPresenterClasses="studioPopover" Placement="BottomEdgeAlignedRight">
+                            <DockPanel MaxHeight="540" Width="336">
+                                <TextBlock
+                                    DockPanel.Dock="Top"
+                                    FontSize="13"
+                                    FontWeight="SemiBold"
+                                    Margin="0,0,0,12"
+                                    Text="Settings" />
+                                <settingsViews:ViewerSettingsView DataContext="{Binding Settings}" />
+                            </DockPanel>
+                        </Flyout>
+                    </Button.Flyout>
+                </Button>
+
+                <StackPanel
+                    x:Name="WindowControlsHost"
+                    Grid.Column="7"
+                    IsVisible="False"
+                    Margin="10,0,0,0"
+                    Orientation="Horizontal"
+                    Spacing="4"
+                    VerticalAlignment="Center">
+                    <Button
+                        Classes="windowControl"
+                        Click="OnMinimizeWindowClick"
+                        ToolTip.Tip="Minimize"
+                        chrome:WindowDecorationProperties.ElementRole="MinimizeButton"
+                        i:Attached.Icon="fa-solid fa-minus" />
+                    <Button
+                        Classes="windowControl"
+                        Click="OnMaximizeOrRestoreWindowClick"
+                        ToolTip.Tip="Maximize or restore"
+                        chrome:WindowDecorationProperties.ElementRole="MaximizeButton"
+                        i:Attached.Icon="fa-solid fa-window-maximize" />
+                    <Button
+                        Classes="windowControl close"
+                        Click="OnCloseWindowClick"
+                        ToolTip.Tip="Close"
+                        chrome:WindowDecorationProperties.ElementRole="CloseButton"
+                        i:Attached.Icon="fa-solid fa-xmark" />
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- ============================ MAIN ============================ -->
+        <Grid
+            x:Name="ShellContentGrid"
+            ColumnDefinitions="Auto,*,Auto"
+            Grid.Row="1"
+            RowDefinitions="*">
+
+            <!-- LEFT: Workspace -->
+            <Border
+                x:Name="WorkspacePane"
+                Background="{DynamicResource SurfaceBase}"
+                BorderBrush="{DynamicResource LineSubtle}"
+                BorderThickness="0,0,1,0"
+                IsVisible="{Binding IsWorkspacePaneVisible}"
+                Width="240">
+                <ScrollViewer HorizontalScrollBarVisibility="Disabled" Padding="12" VerticalScrollBarVisibility="Auto">
+                    <StackPanel Spacing="8">
+                        <TextBlock Classes="section" Text="WORKSPACE" />
+
+                        <Border Classes="card" Padding="10">
+                            <StackPanel Spacing="8">
+                                <StackPanel IsVisible="{Binding HasActiveSession}" Spacing="2">
+                                    <TextBlock FontSize="12" FontWeight="SemiBold" Text="{Binding WorkspaceCardTitle}" />
+                                    <TextBlock Classes="hint" Text="{Binding CurrentAssetSummary}" TextWrapping="Wrap" />
+                                    <TextBlock Classes="hint" Text="{Binding CurrentTextureSummary}" />
+                                </StackPanel>
+                                <TextBlock
+                                    Classes="hint"
+                                    IsVisible="{Binding HasNoActiveSession}"
+                                    Text="Open a model to begin inspection."
+                                    TextWrapping="Wrap" />
+                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                    <Button
+                                        Classes="accent toolbar"
+                                        Click="OnOpenModelClick"
+                                        Content="Open"
+                                        HorizontalAlignment="Left"
+                                        IsEnabled="{Binding CanStartOpenFlow}"
+                                        i:Attached.Icon="fa-solid fa-folder-open" />
+                                    <Button
+                                        Classes="toolbar"
+                                        Command="{Binding CloseSessionCommand}"
+                                        Content="Close"
+                                        HorizontalAlignment="Left"
+                                        IsVisible="{Binding HasActiveSession}"
+                                        i:Attached.Icon="fa-solid fa-xmark" />
+                                </StackPanel>
+                            </StackPanel>
+                        </Border>
+
+                        <Border Classes="card" Padding="10">
+                            <StackPanel Spacing="6">
+                                <TextBlock Classes="section" Text="RUNTIME" />
+                                <TextBlock
+                                    Classes="hint"
+                                    FontSize="10"
+                                    IsVisible="{Binding HasNoActiveSession}"
+                                    Text="{Binding CurrentRuntimeSummary}"
+                                    TextWrapping="Wrap" />
+                                <TextBlock
+                                    FontSize="11"
+                                    Foreground="{DynamicResource TextPrimary}"
+                                    IsVisible="{Binding HasActiveSession}"
+                                    Text="{Binding RuntimeShortName}" />
+                                <ComboBox
+                                    IsEnabled="{Binding CanChangeRuntimeSelection}"
+                                    ItemsSource="{Binding RuntimeOptions}"
+                                    MinWidth="160"
+                                    SelectedItem="{Binding SelectedRuntimeOption}">
+                                    <ComboBox.ItemTemplate>
+                                        <DataTemplate x:DataType="shellModels:RuntimeSelectionOption">
+                                            <TextBlock Text="{Binding DisplayName}" />
+                                        </DataTemplate>
+                                    </ComboBox.ItemTemplate>
+                                </ComboBox>
+                                <TextBlock
+                                    Classes="hint"
+                                    FontSize="10"
+                                    Text="{Binding SelectedRuntimeOptionDescription}"
+                                    TextWrapping="Wrap" />
+                                <TextBlock
+                                    Classes="hint"
+                                    FontSize="10"
+                                    Text="{Binding RuntimeSelectionStatusText}"
+                                    TextWrapping="Wrap" />
+                            </StackPanel>
+                        </Border>
+
+                        <Grid ColumnDefinitions="*,Auto" Margin="0,8,0,0">
+                            <TextBlock Classes="section" Text="RECENT" />
+                            <Button
+                                Command="{Binding ClearRecentProjectsCommand}"
+                                Content="Clear"
+                                Grid.Column="1"
+                                IsVisible="{Binding HasRecentFiles}"
+                                Padding="8,2" />
+                        </Grid>
+                        <TextBlock
+                            Classes="hint"
+                            IsVisible="{Binding HasNoRecentFiles}"
+                            Text="No recent projects yet."
+                            TextWrapping="Wrap" />
+                        <ListBox
+                            Classes="studio"
+                            DoubleTapped="OnRecentDoubleTapped"
+                            IsVisible="{Binding HasRecentFiles}"
+                            ItemsSource="{Binding RecentFiles}"
+                            SelectedItem="{Binding SelectedRecentProject}">
+                            <ListBox.ItemTemplate>
+                                <DataTemplate x:DataType="coreModels:SpineProjectReference">
+                                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                                        <StackPanel Spacing="1">
+                                            <TextBlock FontSize="12" FontWeight="Medium" Text="{Binding DisplayName}" />
+                                            <TextBlock
+                                                Classes="hint"
+                                                FontSize="10"
+                                                Text="{Binding SkeletonPath}"
+                                                TextTrimming="CharacterEllipsis" />
+                                        </StackPanel>
+                                        <Button
+                                            Click="OnRemoveRecentProjectClick"
+                                            Grid.Column="1"
+                                            Padding="6"
+                                            Tag="{Binding}"
+                                            ToolTip.Tip="Remove from recents"
+                                            VerticalAlignment="Center"
+                                            i:Attached.Icon="fa-solid fa-xmark" />
+                                    </Grid>
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                        </ListBox>
+                    </StackPanel>
+                </ScrollViewer>
+            </Border>
+
+            <!-- CENTER: Viewport column -->
+            <Border
+                x:Name="ViewportPane"
+                Background="{DynamicResource SurfaceBase}"
+                Grid.Column="1">
+                <Grid RowDefinitions="Auto,*">
+                    <!-- Toolbar (session only) -->
+                    <viewportViews:ViewportToolbarView
+                        DataContext="{Binding Viewport}"
+                        IsVisible="{Binding HasActiveSession}" />
+
+                    <!-- Render area -->
+                    <Grid Background="{DynamicResource SurfaceViewport}" Grid.Row="1">
+                        <!-- Live viewport -->
+                        <viewportViews:ViewportView DataContext="{Binding Viewport}" IsVisible="{Binding HasActiveSession}" />
+
+                        <!-- Landing -->
+                        <ScrollViewer
+                            HorizontalScrollBarVisibility="Disabled"
+                            IsVisible="{Binding ShowLandingState}"
+                            VerticalScrollBarVisibility="Auto">
+                            <StackPanel
+                                HorizontalAlignment="Center"
+                                MaxWidth="420"
+                                Spacing="6"
+                                VerticalAlignment="Center">
+                                <Image
+                                    Height="48"
+                                    HorizontalAlignment="Center"
+                                    Margin="0,0,0,14"
+                                    Opacity="0.72"
+                                    Source="avares://SpineViewer.Features/Assets/icon_dark.png"
+                                    Stretch="Uniform"
+                                    Width="48" />
+                                <TextBlock
+                                    FontSize="20"
+                                    FontWeight="SemiBold"
+                                    HorizontalAlignment="Center"
+                                    Text="{Binding WorkspaceExperienceTitle}"
+                                    TextAlignment="Center"
+                                    TextWrapping="Wrap" />
+                                <TextBlock
+                                    Classes="hint"
+                                    FontSize="13"
+                                    HorizontalAlignment="Center"
+                                    Text="{Binding WorkspaceExperienceDescription}"
+                                    TextAlignment="Center"
+                                    TextWrapping="Wrap" />
+
+                                <!-- Recovery card -->
+                                <Border
+                                    Background="{DynamicResource SurfaceCard}"
+                                    BorderBrush="{DynamicResource Danger}"
+                                    BorderThickness="1"
+                                    CornerRadius="8"
+                                    IsVisible="{Binding ShowLoadFailureState}"
+                                    Margin="0,8"
+                                    Padding="14">
+                                    <StackPanel Spacing="6">
+                                        <TextBlock FontWeight="SemiBold" Text="{Binding SelectedDiagnosticTitle}" TextWrapping="Wrap" />
+                                        <TextBlock Classes="hint" Text="{Binding SelectedDiagnosticMessage}" TextWrapping="Wrap" />
+                                        <TextBlock
+                                            Classes="hint"
+                                            IsVisible="{Binding HasSelectedDiagnosticSuggestedAction}"
+                                            Text="{Binding SelectedDiagnosticSuggestedAction}"
+                                            TextWrapping="Wrap" />
+                                        <Button
+                                            Command="{Binding RetryLastOpenCommand}"
+                                            Content="Retry Last Attempt"
+                                            HorizontalAlignment="Left"
+                                            IsVisible="{Binding CanRetryLastOpen}"
+                                            i:Attached.Icon="fa-solid fa-rotate-right" />
+                                    </StackPanel>
+                                </Border>
+
+                                <Button
+                                    Classes="accent"
+                                    Click="OnOpenModelClick"
+                                    Content="Open"
+                                    HorizontalAlignment="Center"
+                                    IsEnabled="{Binding CanStartOpenFlow}"
+                                    Margin="0,8,0,0"
+                                    i:Attached.Icon="fa-solid fa-folder-open" />
+                            </StackPanel>
+                        </ScrollViewer>
+
+                        <!-- Loading -->
+                        <StackPanel
+                            HorizontalAlignment="Center"
+                            IsVisible="{Binding ShowLoadingState}"
+                            MaxWidth="420"
+                            Spacing="14"
+                            VerticalAlignment="Center">
+                            <TextBlock
+                                FontSize="20"
+                                FontWeight="SemiBold"
+                                HorizontalAlignment="Center"
+                                Text="{Binding StatusText}"
+                                TextAlignment="Center"
+                                TextWrapping="Wrap" />
+                            <TextBlock
+                                Classes="hint"
+                                HorizontalAlignment="Center"
+                                Text="{Binding LoadingStateDescription}"
+                                TextAlignment="Center"
+                                TextWrapping="Wrap" />
+                            <ProgressBar IsIndeterminate="True" />
+                        </StackPanel>
+
+                        <!-- Floating playback -->
+                        <playbackViews:PlaybackTransportView
+                            DataContext="{Binding Playback}"
+                            IsVisible="{Binding HasActiveSession}"
+                            Margin="10"
+                            VerticalAlignment="Bottom" />
+                    </Grid>
+                </Grid>
+            </Border>
+
+            <!-- RIGHT: Details -->
+            <Border
+                x:Name="DetailsPane"
+                Background="{DynamicResource SurfaceBase}"
+                BorderBrush="{DynamicResource LineSubtle}"
+                BorderThickness="1,0,0,0"
+                Grid.Column="2"
+                IsVisible="{Binding IsDetailsPaneVisible}"
+                Width="290">
+                <TabControl Classes="panel">
+                    <TabItem Header="Inspector">
+                        <inspectorViews:AssetInspectorView DataContext="{Binding Inspector}" />
+                    </TabItem>
+                    <TabItem Header="Tracks">
+                        <playbackViews:AnimationTrackEditorView DataContext="{Binding TrackEditor}" />
+                    </TabItem>
+                    <TabItem Header="Diagnostics">
+                        <diagnosticsViews:DiagnosticsPanelView DataContext="{Binding DiagnosticsPanel}" />
+                    </TabItem>
+                </TabControl>
+            </Border>
+        </Grid>
+
+        <!-- ============================ STATUS BAR ============================ -->
+        <Border
+            Background="{DynamicResource SurfaceBase}"
+            BorderBrush="{DynamicResource LineSubtle}"
+            BorderThickness="0,1,0,0"
+            Grid.Row="2"
+            Height="28">
+            <Grid ColumnDefinitions="*,Auto,Auto,Auto,Auto,Auto" Margin="12,0">
+                <TextBlock
+                    Foreground="{DynamicResource TextMuted}"
+                    FontSize="11"
+                    Text="{Binding StatusText}"
+                    TextTrimming="CharacterEllipsis"
+                    VerticalAlignment="Center" />
+                <TextBlock
+                    Foreground="{DynamicResource TextMuted}"
+                    FontSize="11"
+                    Grid.Column="1"
+                    Text="{Binding ActivitySummary}"
+                    VerticalAlignment="Center" />
+                <Border Classes="divider" Grid.Column="2" Height="12" Margin="12,0" />
+                <TextBlock
+                    Foreground="{DynamicResource TextMuted}"
+                    FontSize="11"
+                    Grid.Column="3"
+                    Text="{Binding RecentFilesSummaryText}"
+                    VerticalAlignment="Center" />
+                <Border Classes="divider" Grid.Column="4" Height="12" Margin="12,0" />
+                <TextBlock
+                    Foreground="{DynamicResource TextMuted}"
+                    FontSize="11"
+                    Grid.Column="5"
+                    Text="{Binding DiagnosticSummaryText}"
+                    VerticalAlignment="Center" />
+            </Grid>
+        </Border>
+    </Grid>
+</UserControl>
