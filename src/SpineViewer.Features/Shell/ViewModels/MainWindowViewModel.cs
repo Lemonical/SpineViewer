@@ -6,6 +6,7 @@ using SpineViewer.Features.Diagnostics.ViewModels;
 using SpineViewer.Features.Inspector.ViewModels;
 using SpineViewer.Features.Playback.ViewModels;
 using SpineViewer.Features.Settings.ViewModels;
+using SpineViewer.Features.Shell.Models;
 using SpineViewer.Features.Viewport.ViewModels;
 
 namespace SpineViewer.Features.Shell.ViewModels;
@@ -16,12 +17,16 @@ namespace SpineViewer.Features.Shell.ViewModels;
 public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
 {
     private const double CompactLayoutThreshold = 1180.0;
+    private readonly IReadOnlyList<RuntimeSelectionOption> _runtimeOptions;
+    private readonly string _runtimeSupportSummaryText;
     private readonly IWorkspaceSessionService _workspaceSessionService;
+    private bool _isSynchronizingRuntimeSelection;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="MainWindowViewModel"/> class.
     /// </summary>
     /// <param name="workspaceSessionService">The workspace service that drives shell session state.</param>
+    /// <param name="runtimeCatalog">The runtime catalog that describes the registered runtime adapters.</param>
     /// <param name="viewport">The viewport view model shown inside the shell.</param>
     /// <param name="playback">The playback transport view model shown inside the shell.</param>
     /// <param name="trackEditor">The track editor view model hosted by the shell.</param>
@@ -30,6 +35,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
     /// <param name="settings">The settings view model hosted by the shell.</param>
     public MainWindowViewModel(
         IWorkspaceSessionService workspaceSessionService,
+        ISpineRuntimeCatalog runtimeCatalog,
         ViewportViewModel viewport,
         PlaybackTransportViewModel playback,
         AnimationTrackEditorViewModel trackEditor,
@@ -39,12 +45,15 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
     {
         _workspaceSessionService =
             workspaceSessionService ?? throw new ArgumentNullException(nameof(workspaceSessionService));
+        ArgumentNullException.ThrowIfNull(runtimeCatalog);
         Viewport = viewport ?? throw new ArgumentNullException(nameof(viewport));
         Playback = playback ?? throw new ArgumentNullException(nameof(playback));
         TrackEditor = trackEditor ?? throw new ArgumentNullException(nameof(trackEditor));
         Inspector = inspector ?? throw new ArgumentNullException(nameof(inspector));
         DiagnosticsPanel = diagnosticsPanel ?? throw new ArgumentNullException(nameof(diagnosticsPanel));
         Settings = settings ?? throw new ArgumentNullException(nameof(settings));
+        _runtimeOptions = BuildRuntimeOptions(runtimeCatalog.GetAvailableRuntimes());
+        _runtimeSupportSummaryText = BuildRuntimeSupportSummary(runtimeCatalog.GetAvailableRuntimes());
         _workspaceSessionService.StateChanged += OnWorkspaceStateChanged;
         ApplyState(_workspaceSessionService.State);
     }
@@ -102,6 +111,13 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
     [NotifyPropertyChangedFor(nameof(CurrentViewportSummary))]
     [NotifyPropertyChangedFor(nameof(CurrentSkeletonPath))]
     [NotifyPropertyChangedFor(nameof(CurrentAtlasPath))]
+    [NotifyPropertyChangedFor(nameof(HeaderModelName))]
+    [NotifyPropertyChangedFor(nameof(HeaderVersionText))]
+    [NotifyPropertyChangedFor(nameof(HasHeaderVersion))]
+    [NotifyPropertyChangedFor(nameof(WorkspaceCardTitle))]
+    [NotifyPropertyChangedFor(nameof(RuntimeShortName))]
+    [NotifyPropertyChangedFor(nameof(IsRuntimeExactMatch))]
+    [NotifyPropertyChangedFor(nameof(RuntimeSelectionStatusText))]
     [NotifyPropertyChangedFor(nameof(SessionDetailsTitle))]
     [NotifyPropertyChangedFor(nameof(ShowLandingState))]
     [NotifyPropertyChangedFor(nameof(ShowLoadingState))]
@@ -109,8 +125,11 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
     [NotifyPropertyChangedFor(nameof(ShowLoadFailureState))]
     [NotifyPropertyChangedFor(nameof(WorkspaceExperienceTitle))]
     [NotifyPropertyChangedFor(nameof(WorkspaceExperienceDescription))]
+    [NotifyPropertyChangedFor(nameof(CanRetryLastOpen))]
+    [NotifyPropertyChangedFor(nameof(RecoveryPrimaryActionText))]
     [NotifyCanExecuteChangedFor(nameof(ReloadSessionCommand))]
     [NotifyCanExecuteChangedFor(nameof(CloseSessionCommand))]
+    [NotifyCanExecuteChangedFor(nameof(RetryLastOpenCommand))]
     private SpineProjectSession? currentSession;
 
     /// <summary>
@@ -120,6 +139,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
     [NotifyPropertyChangedFor(nameof(HasRecentFiles))]
     [NotifyPropertyChangedFor(nameof(HasNoRecentFiles))]
     [NotifyPropertyChangedFor(nameof(RecentFilesSummaryText))]
+    [NotifyCanExecuteChangedFor(nameof(ClearRecentProjectsCommand))]
     private IReadOnlyList<SpineProjectReference> recentFiles = Array.Empty<SpineProjectReference>();
 
     /// <summary>
@@ -141,6 +161,9 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
     [NotifyPropertyChangedFor(nameof(ShowLoadFailureState))]
     [NotifyPropertyChangedFor(nameof(WorkspaceExperienceTitle))]
     [NotifyPropertyChangedFor(nameof(WorkspaceExperienceDescription))]
+    [NotifyPropertyChangedFor(nameof(CanRetryLastOpen))]
+    [NotifyPropertyChangedFor(nameof(RecoveryPrimaryActionText))]
+    [NotifyPropertyChangedFor(nameof(HasBlockingDiagnostics))]
     private IReadOnlyList<ViewerDiagnostic> diagnostics = Array.Empty<ViewerDiagnostic>();
 
     /// <summary>
@@ -167,6 +190,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(ActivitySummary))]
     [NotifyPropertyChangedFor(nameof(CanStartOpenFlow))]
+    [NotifyPropertyChangedFor(nameof(CanChangeRuntimeSelection))]
     [NotifyPropertyChangedFor(nameof(ShowLandingState))]
     [NotifyPropertyChangedFor(nameof(ShowLoadingState))]
     [NotifyPropertyChangedFor(nameof(ShowFirstRunState))]
@@ -174,6 +198,9 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
     [NotifyCanExecuteChangedFor(nameof(ReloadSessionCommand))]
     [NotifyCanExecuteChangedFor(nameof(CloseSessionCommand))]
     [NotifyCanExecuteChangedFor(nameof(OpenSelectedRecentProjectCommand))]
+    [NotifyCanExecuteChangedFor(nameof(ClearRecentProjectsCommand))]
+    [NotifyCanExecuteChangedFor(nameof(RemoveRecentProjectCommand))]
+    [NotifyCanExecuteChangedFor(nameof(RetryLastOpenCommand))]
     private bool isBusy;
 
     /// <summary>
@@ -196,6 +223,14 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(DetailsPaneButtonText))]
     private bool isDetailsPaneVisible = true;
+
+    /// <summary>
+    /// Gets the currently selected runtime option for new loads and reloads.
+    /// </summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(SelectedRuntimeOptionDescription))]
+    [NotifyPropertyChangedFor(nameof(RuntimeSelectionStatusText))]
+    private RuntimeSelectionOption? selectedRuntimeOption;
 
     /// <summary>
     /// Gets a value indicating whether a session is currently open.
@@ -228,6 +263,11 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
     public bool HasNoDiagnostics => !HasDiagnostics;
 
     /// <summary>
+    /// Gets a value indicating whether at least one error diagnostic is active.
+    /// </summary>
+    public bool HasBlockingDiagnostics => Diagnostics.Any(static diagnostic => diagnostic.Severity == ViewerDiagnosticSeverity.Error);
+
+    /// <summary>
     /// Gets a value indicating whether a diagnostic is currently selected.
     /// </summary>
     public bool HasSelectedDiagnostic => SelectedDiagnostic is not null;
@@ -254,7 +294,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
     /// Gets the active runtime summary.
     /// </summary>
     public string CurrentRuntimeSummary => CurrentSession?.Runtime.DisplayName ??
-                                           "Exact runtime support is available for Spine 3.8.95 and 4.1.00.";
+                                           _runtimeSupportSummaryText;
 
     /// <summary>
     /// Gets the version-detection summary for the current session.
@@ -335,6 +375,72 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
     public string SessionDetailsTitle => HasActiveSession ? "Active Session" : "Open Guidance";
 
     /// <summary>
+    /// Gets the skeleton file name shown beside the brand in the shell header.
+    /// </summary>
+    public string HeaderModelName => CurrentSession is null
+        ? "No model loaded"
+        : Path.GetFileName(CurrentSession.AssetFileSet.SkeletonPath);
+
+    /// <summary>
+    /// Gets the short export/runtime version badge shown in the shell header.
+    /// </summary>
+    public string HeaderVersionText => CurrentSession?.VersionMatch.DetectedExportVersion
+        ?? CurrentSession?.Runtime.SupportedExportRange
+        ?? string.Empty;
+
+    /// <summary>
+    /// Gets a value indicating whether the header version badge should be shown.
+    /// </summary>
+    public bool HasHeaderVersion => CurrentSession is not null && !string.IsNullOrWhiteSpace(HeaderVersionText);
+
+    /// <summary>
+    /// Gets the model base name used as the workspace card heading.
+    /// </summary>
+    public string WorkspaceCardTitle => CurrentSession?.Project.DisplayName ?? string.Empty;
+
+    /// <summary>
+    /// Gets the short runtime identifier shown in the workspace card.
+    /// </summary>
+    public string RuntimeShortName => CurrentSession?.Runtime.DisplayName ?? string.Empty;
+
+    /// <summary>
+    /// Gets a value indicating whether the active runtime is an exact version match.
+    /// </summary>
+    public bool IsRuntimeExactMatch => CurrentSession?.VersionMatch.IsExactMatch ?? false;
+
+    /// <summary>
+    /// Gets the runtime options available to the shell.
+    /// </summary>
+    public IReadOnlyList<RuntimeSelectionOption> RuntimeOptions => _runtimeOptions;
+
+    /// <summary>
+    /// Gets a value indicating whether the runtime selector is available.
+    /// </summary>
+    public bool CanChangeRuntimeSelection => !IsBusy;
+
+    /// <summary>
+    /// Gets the helper text for the currently selected runtime option.
+    /// </summary>
+    public string SelectedRuntimeOptionDescription => SelectedRuntimeOption?.Description ??
+        "Auto-detect chooses the closest compatible registered runtime.";
+
+    /// <summary>
+    /// Gets the status text for the current runtime-selection mode.
+    /// </summary>
+    public string RuntimeSelectionStatusText => SelectedRuntimeOption switch
+    {
+        { IsAutoDetect: true } when CurrentSession is null =>
+            "Auto-detect uses the exported Spine version to choose the closest registered runtime adapter.",
+        { IsAutoDetect: true } =>
+            $"Auto-detected with {CurrentSession!.Runtime.DisplayName}.",
+        RuntimeSelectionOption runtimeOption when CurrentSession is null =>
+            $"The next model will load with {runtimeOption.DisplayName}.",
+        RuntimeSelectionOption runtimeOption =>
+            $"Changing this option reloads the current model with {runtimeOption.DisplayName}.",
+        _ => string.Empty,
+    };
+
+    /// <summary>
     /// Gets a value indicating whether the viewport should show the landing experience.
     /// </summary>
     public bool ShowLandingState => HasNoActiveSession && !IsBusy;
@@ -358,15 +464,27 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
     /// Gets the current landing-experience title.
     /// </summary>
     public string WorkspaceExperienceTitle => ShowLoadFailureState
-        ? "Couldn't open that model."
-        : "Open a Spine model.";
+        ? "Couldn't load that model"
+        : "Load a Spine model";
 
     /// <summary>
     /// Gets the current landing-experience description.
     /// </summary>
     public string WorkspaceExperienceDescription => ShowLoadFailureState
         ? "The workspace is still ready. Review the recovery guidance below, then try another file or reopen a recent project."
-        : "Choose a skeleton or atlas file, or drop your files anywhere in this window. SpineViewer will pair companion files when it can and explain the runtime it selected.";
+        : "Choose a skeleton or atlas file, or drop the files here.";
+
+    /// <summary>
+    /// Gets a value indicating whether the last open attempt can be retried.
+    /// </summary>
+    public bool CanRetryLastOpen => _workspaceSessionService.CanRetryLastOpen && !IsBusy;
+
+    /// <summary>
+    /// Gets the primary recovery action label for the current failure.
+    /// </summary>
+    public string RecoveryPrimaryActionText => HasBlockingDiagnostics
+        ? "Replace Missing Files..."
+        : "Load Model...";
 
     /// <summary>
     /// Gets the file formats accepted by the Phase 10 open flow.
@@ -383,7 +501,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
     /// Gets the version-detection guidance shown for the first-run open flow.
     /// </summary>
     public string VersionDetectionGuidanceText =>
-        "Exact runtime support is built in for Spine 3.8.95 and 4.1.00. When the export is nearby, SpineViewer will surface a compatibility warning before you trust the preview.";
+        $"{_runtimeSupportSummaryText} Auto-detect prefers the closest compatible export family, and you can override it from the runtime selector.";
 
     /// <summary>
     /// Gets the loading-state description shown while the workspace is opening a model.
@@ -396,6 +514,12 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
     /// </summary>
     public string DropHintText =>
         "Drop one or two files here: one skeleton file and one atlas file at most.";
+
+    /// <summary>
+    /// Gets the keyboard shortcut summary shown in the shell.
+    /// </summary>
+    public string KeyboardShortcutsSummaryText =>
+        "Shortcuts: Ctrl+O open, Ctrl+Shift+R retry last attempt, F fit view, 0 reset camera, G grid, O origin, B background, Space play/pause.";
 
     /// <summary>
     /// Gets the toolbar label for the workspace-pane toggle.
@@ -494,11 +618,22 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
         IsBusy = state.IsBusy;
         SelectedRecentProject = ChooseRecentProjectSelection(state);
         SelectedDiagnostic = ChooseDiagnosticSelection(state.Diagnostics);
+        SynchronizeRuntimeSelection(state.PreferredRuntimeId);
     }
 
     private void OnWorkspaceStateChanged(object? sender, EventArgs e)
     {
         ApplyState(_workspaceSessionService.State);
+    }
+
+    partial void OnSelectedRuntimeOptionChanged(RuntimeSelectionOption? value)
+    {
+        if (_isSynchronizingRuntimeSelection || value is null)
+        {
+            return;
+        }
+
+        _ = ApplyRuntimeSelectionAsync(value);
     }
 
     [RelayCommand(CanExecute = nameof(CanReloadSession))]
@@ -524,6 +659,29 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
         return _workspaceSessionService.OpenAsync(SelectedRecentProject, CancellationToken.None);
     }
 
+    [RelayCommand(CanExecute = nameof(CanClearRecentProjects))]
+    private Task ClearRecentProjectsAsync()
+    {
+        return _workspaceSessionService.ClearRecentProjectsAsync(CancellationToken.None);
+    }
+
+    [RelayCommand(CanExecute = nameof(CanRemoveRecentProject))]
+    private Task RemoveRecentProjectAsync(SpineProjectReference? projectReference)
+    {
+        if (projectReference is null)
+        {
+            return Task.CompletedTask;
+        }
+
+        return _workspaceSessionService.RemoveRecentProjectAsync(projectReference, CancellationToken.None);
+    }
+
+    [RelayCommand(CanExecute = nameof(CanRetryLastOpen))]
+    private Task RetryLastOpenAsync()
+    {
+        return _workspaceSessionService.RetryLastOpenAsync(CancellationToken.None);
+    }
+
     [RelayCommand]
     private void ToggleWorkspacePane()
     {
@@ -534,6 +692,18 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
     private void ToggleDetailsPane()
     {
         IsDetailsPaneVisible = !IsDetailsPaneVisible;
+    }
+
+    private async Task ApplyRuntimeSelectionAsync(RuntimeSelectionOption runtimeOption)
+    {
+        _workspaceSessionService.UpdatePreferredRuntimeId(runtimeOption.RuntimeId);
+
+        if (!HasActiveSession || IsBusy || !ReloadSessionCommand.CanExecute(null))
+        {
+            return;
+        }
+
+        await ReloadSessionCommand.ExecuteAsync(null);
     }
 
     private bool CanCloseSession()
@@ -549,6 +719,50 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
     private bool CanReloadSession()
     {
         return CurrentSession is not null && !IsBusy;
+    }
+
+    private bool CanClearRecentProjects()
+    {
+        return HasRecentFiles && !IsBusy;
+    }
+
+    private bool CanRemoveRecentProject(SpineProjectReference? projectReference)
+    {
+        return projectReference is not null && !IsBusy;
+    }
+
+    private static IReadOnlyList<RuntimeSelectionOption> BuildRuntimeOptions(
+        IReadOnlyList<SpineRuntimeDescriptor> runtimes)
+    {
+        List<RuntimeSelectionOption> options =
+        [
+            new RuntimeSelectionOption(
+                null,
+                "Auto-detect",
+                "Closest compatible registered runtime."),
+        ];
+
+        options.AddRange(
+            runtimes.Select(
+                runtime => new RuntimeSelectionOption(
+                    runtime.RuntimeId,
+                    runtime.DisplayName,
+                    $"Supports {runtime.SupportedExportRange}.")));
+
+        return options;
+    }
+
+    private static string BuildRuntimeSupportSummary(IReadOnlyList<SpineRuntimeDescriptor> runtimes)
+    {
+        if (runtimes.Count == 0)
+        {
+            return "No runtime adapters are currently registered.";
+        }
+
+        string joinedRuntimeNames = string.Join(", ", runtimes.Select(static runtime => runtime.DisplayName));
+        return runtimes.Count == 1
+            ? $"Available runtime adapter: {joinedRuntimeNames}."
+            : $"Available runtime adapters: {joinedRuntimeNames}.";
     }
 
     private static int CountActiveViewportOverlays(ViewportState viewportState)
@@ -654,5 +868,28 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
         }
 
         return diagnostics[0];
+    }
+
+    private void SynchronizeRuntimeSelection(string? preferredRuntimeId)
+    {
+        RuntimeSelectionOption resolvedOption = _runtimeOptions.FirstOrDefault(
+                option => string.Equals(option.RuntimeId, preferredRuntimeId, StringComparison.OrdinalIgnoreCase))
+            ?? _runtimeOptions[0];
+
+        if (ReferenceEquals(SelectedRuntimeOption, resolvedOption))
+        {
+            return;
+        }
+
+        _isSynchronizingRuntimeSelection = true;
+
+        try
+        {
+            SelectedRuntimeOption = resolvedOption;
+        }
+        finally
+        {
+            _isSynchronizingRuntimeSelection = false;
+        }
     }
 }

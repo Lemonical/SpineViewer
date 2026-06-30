@@ -35,7 +35,7 @@ public sealed class SpineSessionFactoryTests
         Assert.False(session.Viewport.ShowOrigin);
         Assert.True(session.Viewport.ShowBones);
         Assert.True(session.Viewport.ShowBounds);
-        Assert.Equal(ViewportBackgroundStyle.Studio, session.Viewport.BackgroundStyle);
+        Assert.Equal(ViewportBackgroundStyle.Black, session.Viewport.BackgroundStyle);
     }
 
     [Fact]

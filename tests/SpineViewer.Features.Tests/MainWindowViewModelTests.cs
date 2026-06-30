@@ -5,6 +5,7 @@ using SpineViewer.Features.Diagnostics.ViewModels;
 using SpineViewer.Features.Inspector.ViewModels;
 using SpineViewer.Features.Playback.Services;
 using SpineViewer.Features.Playback.ViewModels;
+using SpineViewer.Features.Shell.Models;
 using SpineViewer.Features.Settings.ViewModels;
 using SpineViewer.Features.Shell.ViewModels;
 using SpineViewer.Features.Viewport.Contracts;
@@ -32,6 +33,7 @@ public sealed class MainWindowViewModelTests
         TestViewerSettingsService viewerSettingsService = new(new ViewerSettings());
         MainWindowViewModel viewModel = new(
             workspaceSessionService,
+            new TestSpineRuntimeCatalog(),
             viewportViewModel,
             playbackViewModel,
             new AnimationTrackEditorViewModel(
@@ -52,9 +54,10 @@ public sealed class MainWindowViewModelTests
         Assert.True(viewModel.HasRecentFiles);
         Assert.Equal("1 recent project(s)", viewModel.RecentFilesSummaryText);
         Assert.Contains("Stopped", viewModel.CurrentPlaybackSummary);
-        Assert.Contains("Studio", viewModel.CurrentViewportSummary);
+        Assert.Contains("Black", viewModel.CurrentViewportSummary);
         Assert.False(viewModel.ShowLandingState);
         Assert.False(viewModel.IsCompactLayout);
+        Assert.Equal("Auto-detect", viewModel.SelectedRuntimeOption?.DisplayName);
         Assert.Same(viewportViewModel, viewModel.Viewport);
         Assert.Same(playbackViewModel, viewModel.Playback);
     }
@@ -75,9 +78,10 @@ public sealed class MainWindowViewModelTests
         Assert.True(viewModel.ShowLandingState);
         Assert.True(viewModel.ShowFirstRunState);
         Assert.False(viewModel.ShowLoadFailureState);
-        Assert.Equal("Open a Spine model.", viewModel.WorkspaceExperienceTitle);
+        Assert.Equal("Load a Spine model", viewModel.WorkspaceExperienceTitle);
         Assert.Equal("Open a Spine Model", viewModel.CurrentProjectName);
-        Assert.Equal("Exact runtime support is available for Spine 3.8.95 and 4.1.00.", viewModel.CurrentRuntimeSummary);
+        Assert.Equal("Available runtime adapters: Spine 3.8.95, Spine 4.1.00.", viewModel.CurrentRuntimeSummary);
+        Assert.Equal(3, viewModel.RuntimeOptions.Count);
     }
 
     [Fact]
@@ -158,6 +162,56 @@ public sealed class MainWindowViewModelTests
     }
 
     [Fact]
+    public async Task RetryLastOpenCommand_RoutesToWorkspaceService()
+    {
+        TestWorkspaceSessionService workspaceSessionService = new(
+            new WorkspaceState(
+                null,
+                Array.Empty<SpineProjectReference>(),
+                [
+                    new ViewerDiagnostic(
+                        "atlas-texture-missing",
+                        ViewerDiagnosticSeverity.Error,
+                        "A texture referenced by the atlas could not be found.",
+                        "Resolver"),
+                ],
+                "Failed to open Hero.",
+                false))
+        {
+            CanRetryLastOpen = true,
+        };
+        MainWindowViewModel viewModel = CreateShellViewModel(workspaceSessionService);
+
+        await viewModel.RetryLastOpenCommand.ExecuteAsync(null);
+
+        Assert.Equal(1, workspaceSessionService.RetryCount);
+        Assert.True(viewModel.CanRetryLastOpen);
+    }
+
+    [Fact]
+    public async Task SelectingRuntimeOption_WithActiveSession_UpdatesPreferenceAndReloadsAsync()
+    {
+        TestWorkspaceSessionService workspaceSessionService = new(
+            new WorkspaceState(
+                FeatureTestFactory.CreateSession("Hero"),
+                Array.Empty<SpineProjectReference>(),
+                Array.Empty<ViewerDiagnostic>(),
+                "Opened Hero.",
+                false));
+        MainWindowViewModel viewModel = CreateShellViewModel(workspaceSessionService);
+        RuntimeSelectionOption runtimeOption = Assert.Single(
+            viewModel.RuntimeOptions,
+            option => option.RuntimeId == "spine-3.8.95");
+
+        viewModel.SelectedRuntimeOption = runtimeOption;
+
+        await WaitForConditionAsync(static service => service.ReloadCount == 1, workspaceSessionService);
+
+        Assert.Equal("spine-3.8.95", workspaceSessionService.State.PreferredRuntimeId);
+        Assert.Equal(runtimeOption, viewModel.SelectedRuntimeOption);
+    }
+
+    [Fact]
     public void WorkspaceStateChange_RefreshesCurrentSelections()
     {
         SpineProjectReference hero = new("Hero", "hero.json", "hero.atlas");
@@ -218,7 +272,7 @@ public sealed class MainWindowViewModelTests
         Assert.True(viewModel.ShowLandingState);
         Assert.True(viewModel.ShowLoadFailureState);
         Assert.False(viewModel.ShowFirstRunState);
-        Assert.Equal("Couldn't open that model.", viewModel.WorkspaceExperienceTitle);
+        Assert.Equal("Couldn't load that model", viewModel.WorkspaceExperienceTitle);
         Assert.Equal(diagnostic.SuggestedAction, viewModel.SelectedDiagnosticSuggestedAction);
     }
 
@@ -229,6 +283,7 @@ public sealed class MainWindowViewModelTests
 
         return new MainWindowViewModel(
             workspaceSessionService,
+            new TestSpineRuntimeCatalog(),
             CreateViewportViewModel(workspaceSessionService),
             CreatePlaybackViewModel(workspaceSessionService),
             new AnimationTrackEditorViewModel(
@@ -237,9 +292,26 @@ public sealed class MainWindowViewModelTests
                 viewerSettingsService),
             new AssetInspectorViewModel(workspaceSessionService),
             new DiagnosticsPanelViewModel(workspaceSessionService),
-            new ViewerSettingsViewModel(
-                viewerSettingsService,
-                new TestApplicationThemeService()));
+                new ViewerSettingsViewModel(
+                    viewerSettingsService,
+                    new TestApplicationThemeService()));
+    }
+
+    private static async Task WaitForConditionAsync<TState>(
+        Func<TState, bool> predicate,
+        TState state)
+    {
+        for (int attempt = 0; attempt < 20; attempt++)
+        {
+            if (predicate(state))
+            {
+                return;
+            }
+
+            await Task.Delay(10);
+        }
+
+        Assert.True(predicate(state), "The expected asynchronous condition was not met.");
     }
 
     private static PlaybackTransportViewModel CreatePlaybackViewModel(
@@ -259,6 +331,7 @@ public sealed class MainWindowViewModelTests
             new StubRenderInvalidationService(),
             new StubViewportFrameScheduler(),
             new ViewportCameraService(),
+            new StubSpineRuntimePreviewBoundsService(),
             new StubViewportSceneComposer());
     }
 
@@ -300,7 +373,49 @@ public sealed class MainWindowViewModelTests
                 Array.Empty<ViewportOverlayLine>(),
                 frameVersion,
                 workspaceState.CurrentSession is not null,
-                workspaceState.CurrentSession?.Project.DisplayName);
+                workspaceState.CurrentSession?.Project.DisplayName,
+                workspaceState.CurrentSession);
+        }
+    }
+
+    private sealed class StubSpineRuntimePreviewBoundsService : ISpineRuntimePreviewBoundsService
+    {
+        public ViewportContentBounds? MeasureContentBounds(SpineProjectSession session)
+        {
+            return null;
+        }
+    }
+
+    private sealed class TestSpineRuntimeCatalog : ISpineRuntimeCatalog
+    {
+        private readonly IReadOnlyList<SpineRuntimeDescriptor> _runtimes =
+        [
+            new(
+                "spine-3.8.95",
+                "Spine 3.8.95",
+                "3.8.x",
+                new SpineRuntimeCapabilities([new SpineRuntimeFeatureSupport(SpineRuntimeFeature.JsonSkeleton, true)])),
+            new(
+                "spine-4.1.00",
+                "Spine 4.1.00",
+                "4.1.x",
+                new SpineRuntimeCapabilities([new SpineRuntimeFeatureSupport(SpineRuntimeFeature.JsonSkeleton, true)])),
+        ];
+
+        public ISpineRuntimeAdapter GetRequiredAdapter(string runtimeId)
+        {
+            throw new NotSupportedException();
+        }
+
+        public IReadOnlyList<SpineRuntimeDescriptor> GetAvailableRuntimes()
+        {
+            return _runtimes;
+        }
+
+        public bool TryGetBestAdapter(SpineVersionMatch versionMatch, out ISpineRuntimeAdapter? adapter)
+        {
+            adapter = null;
+            return false;
         }
     }
 }

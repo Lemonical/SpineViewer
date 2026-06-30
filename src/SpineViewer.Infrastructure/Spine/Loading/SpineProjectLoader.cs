@@ -62,7 +62,9 @@ public sealed class SpineProjectLoader : ISpineProjectLoader
                 .ConfigureAwait(false);
 
             SpineProjectInspection inspection = runtimeResult.IsSuccessful
-                ? await _projectInspector.InspectAsync(request.AssetFileSet, cancellationToken).ConfigureAwait(false)
+                ? await _projectInspector
+                    .InspectAsync(request.AssetFileSet, runtimeResult.Runtime, cancellationToken)
+                    .ConfigureAwait(false)
                 : SpineProjectInspection.Empty;
 
             List<ViewerDiagnostic> diagnostics =

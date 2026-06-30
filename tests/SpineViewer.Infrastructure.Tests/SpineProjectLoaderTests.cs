@@ -157,6 +157,7 @@ public sealed class SpineProjectLoaderTests
 
         public Task<SpineProjectInspection> InspectAsync(
             SpineAssetFileSet assetFileSet,
+            SpineRuntimeDescriptor selectedRuntime,
             CancellationToken cancellationToken)
         {
             return Task.FromResult(_inspection);

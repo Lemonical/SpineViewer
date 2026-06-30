@@ -18,6 +18,11 @@ public interface IWorkspaceSessionService
     WorkspaceState State { get; }
 
     /// <summary>
+    /// Gets a value indicating whether the last open attempt can be retried.
+    /// </summary>
+    bool CanRetryLastOpen { get; }
+
+    /// <summary>
     /// Loads persisted workspace dependencies such as recent files and viewer settings.
     /// </summary>
     /// <param name="cancellationToken">A token that cancels initialization.</param>
@@ -50,11 +55,33 @@ public interface IWorkspaceSessionService
     Task OpenAsync(SpineProjectReference projectReference, CancellationToken cancellationToken);
 
     /// <summary>
+    /// Removes one persisted recent project entry without affecting the current session.
+    /// </summary>
+    /// <param name="projectReference">The recent project reference to remove.</param>
+    /// <param name="cancellationToken">A token that cancels the update.</param>
+    /// <returns>A task that completes when the update has finished.</returns>
+    Task RemoveRecentProjectAsync(SpineProjectReference projectReference, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Clears the persisted recent-project list without affecting the current session.
+    /// </summary>
+    /// <param name="cancellationToken">A token that cancels the update.</param>
+    /// <returns>A task that completes when the update has finished.</returns>
+    Task ClearRecentProjectsAsync(CancellationToken cancellationToken);
+
+    /// <summary>
     /// Reloads the currently open session from disk.
     /// </summary>
     /// <param name="cancellationToken">A token that cancels the reload operation.</param>
     /// <returns>A task that completes when reload has finished.</returns>
     Task ReloadAsync(CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Retries the most recent open, reopen, reload, or restore attempt.
+    /// </summary>
+    /// <param name="cancellationToken">A token that cancels the retry operation.</param>
+    /// <returns>A task that completes when the retry flow has finished.</returns>
+    Task RetryLastOpenAsync(CancellationToken cancellationToken);
 
     /// <summary>
     /// Closes the current session and clears any persisted restore target.
@@ -87,4 +114,10 @@ public interface IWorkspaceSessionService
     /// </summary>
     /// <param name="skinName">The selected skin name, or <see langword="null" /> to clear the selection.</param>
     void UpdateSelectedSkin(string? skinName);
+
+    /// <summary>
+    /// Updates the preferred runtime identifier used for the next load or reload.
+    /// </summary>
+    /// <param name="runtimeId">The preferred runtime identifier, or <see langword="null" /> to use auto-detect.</param>
+    void UpdatePreferredRuntimeId(string? runtimeId);
 }

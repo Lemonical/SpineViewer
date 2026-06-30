@@ -1,4 +1,5 @@
 using SpineViewer.Core.Models;
+using SpineViewer.Infrastructure.Spine.Adapters;
 using SpineViewer.Infrastructure.Spine.Loading;
 using Xunit;
 
@@ -7,7 +8,12 @@ namespace SpineViewer.Infrastructure.Tests;
 public sealed class VersionDetectionServiceTests : IDisposable
 {
     private readonly string _temporaryDirectory;
-    private readonly VersionDetectionService _service = new();
+    private readonly VersionDetectionService _service = new(
+        new SpineRuntimeCatalog(
+            [
+                new Spine38RuntimeAdapter(),
+                new Spine41RuntimeAdapter(),
+            ]));
 
     public VersionDetectionServiceTests()
     {
@@ -49,7 +55,25 @@ public sealed class VersionDetectionServiceTests : IDisposable
         Assert.Contains(
             result.Diagnostics,
             static diagnostic => diagnostic.Code == "version-detection-binary-heuristic");
-        Assert.Equal(["spine-4.1.00", "spine-3.8.95"], result.CompatibleRuntimeIds);
+        Assert.Equal(["spine-3.8.95", "spine-4.1.00"], result.CompatibleRuntimeIds);
+    }
+
+    [Fact]
+    public async Task DetectAsync_UsesEmbeddedBinaryVersionWhenAvailableAsync()
+    {
+        string skeletonPath = WriteFile("hero.skel", "header\03.8.76\0payload");
+        string atlasPath = WriteFile("hero.atlas", "hero.png\n");
+        string texturePath = WriteFile("hero.png", "png");
+        SpineAssetFileSet assetFileSet = new(skeletonPath, atlasPath, [texturePath]);
+
+        SpineVersionMatch result = await _service.DetectAsync(assetFileSet, CancellationToken.None);
+
+        Assert.False(result.IsExactMatch);
+        Assert.Equal("3.8.76", result.DetectedExportVersion);
+        Assert.Equal("spine-3.8.95", result.SuggestedRuntimeId);
+        Assert.Contains(
+            result.Diagnostics,
+            static diagnostic => diagnostic.Code == "version-detection-compatible-runtime-family");
     }
 
     [Fact]

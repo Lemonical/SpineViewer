@@ -10,6 +10,7 @@ namespace SpineViewer.Features.Workspace.Services;
 public sealed class WorkspaceSessionService : IWorkspaceSessionService
 {
     private readonly SemaphoreSlim _gate = new(1, 1);
+    private readonly IUiDispatcher _uiDispatcher;
     private readonly ISpineProjectLoader _projectLoader;
     private readonly ISpineProjectReferenceResolver _projectReferenceResolver;
     private readonly IRecentFilesService _recentFilesService;
@@ -22,8 +23,12 @@ public sealed class WorkspaceSessionService : IWorkspaceSessionService
         Array.Empty<SpineProjectReference>(),
         Array.Empty<ViewerDiagnostic>(),
         "Ready.",
-        false);
+        false)
+    {
+        PreferredRuntimeId = null,
+    };
     private bool _isInitialized;
+    private RetryRequest? _lastRetryRequest;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="WorkspaceSessionService"/> class.
@@ -35,6 +40,7 @@ public sealed class WorkspaceSessionService : IWorkspaceSessionService
     /// <param name="sessionFactory">The factory used to create durable workspace sessions.</param>
     /// <param name="recentFilesService">The recent-files service for persisted history.</param>
     /// <param name="viewerSettingsService">The shared viewer settings service for restore and transient-state defaults.</param>
+    /// <param name="uiDispatcher">The dispatcher used to publish workspace state changes on the UI thread.</param>
     public WorkspaceSessionService(
         ISpineProjectReferenceResolver projectReferenceResolver,
         IVersionDetectionService versionDetectionService,
@@ -42,7 +48,8 @@ public sealed class WorkspaceSessionService : IWorkspaceSessionService
         ISpineProjectLoader projectLoader,
         ISpineSessionFactory sessionFactory,
         IRecentFilesService recentFilesService,
-        IViewerSettingsService viewerSettingsService)
+        IViewerSettingsService viewerSettingsService,
+        IUiDispatcher uiDispatcher)
     {
         _projectReferenceResolver = projectReferenceResolver ?? throw new ArgumentNullException(nameof(projectReferenceResolver));
         _versionDetectionService = versionDetectionService ?? throw new ArgumentNullException(nameof(versionDetectionService));
@@ -51,6 +58,7 @@ public sealed class WorkspaceSessionService : IWorkspaceSessionService
         _sessionFactory = sessionFactory ?? throw new ArgumentNullException(nameof(sessionFactory));
         _recentFilesService = recentFilesService ?? throw new ArgumentNullException(nameof(recentFilesService));
         _viewerSettingsService = viewerSettingsService ?? throw new ArgumentNullException(nameof(viewerSettingsService));
+        _uiDispatcher = uiDispatcher ?? throw new ArgumentNullException(nameof(uiDispatcher));
     }
 
     /// <inheritdoc />
@@ -58,6 +66,9 @@ public sealed class WorkspaceSessionService : IWorkspaceSessionService
 
     /// <inheritdoc />
     public WorkspaceState State => _state;
+
+    /// <inheritdoc />
+    public bool CanRetryLastOpen => _lastRetryRequest is not null && !_state.IsBusy;
 
     /// <inheritdoc />
     public async Task InitializeAsync(CancellationToken cancellationToken)
@@ -127,6 +138,7 @@ public sealed class WorkspaceSessionService : IWorkspaceSessionService
             ? materializedSelectedPaths[1]
             : null;
 
+        _lastRetryRequest = RetryRequest.CreateSelection(selectedPath, companionPath);
         await OpenAsync(selectedPath, companionPath, cancellationToken).ConfigureAwait(false);
     }
 
@@ -137,19 +149,22 @@ public sealed class WorkspaceSessionService : IWorkspaceSessionService
         CancellationToken cancellationToken)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(selectedPath);
+        _lastRetryRequest = RetryRequest.CreateSelection(selectedPath, companionPath);
 
         await _gate.WaitAsync(cancellationToken).ConfigureAwait(false);
 
         try
         {
             await EnsureInitializedCoreAsync(cancellationToken).ConfigureAwait(false);
-            StartLifecycleOperation($"Opening {Path.GetFileName(selectedPath)}.");
+            SpineProjectSession? existingSession = _state.CurrentSession;
+            StartLifecycleOperation(existingSession, $"Opening {Path.GetFileName(selectedPath)}.");
 
             ResolveSpineProjectResult resolveResult = await _projectReferenceResolver
                 .ResolveFromSelectionAsync(selectedPath, companionPath, cancellationToken)
                 .ConfigureAwait(false);
 
             await CompleteOpenFromResolveAsync(
+                existingSession,
                 resolveResult,
                 "Opened",
                 "Failed to open",
@@ -158,7 +173,7 @@ public sealed class WorkspaceSessionService : IWorkspaceSessionService
         catch (OperationCanceledException)
         {
             FinishLifecycleOperation(
-                null,
+                _state.CurrentSession,
                 Array.Empty<ViewerDiagnostic>(),
                 "Open canceled.",
                 false);
@@ -176,19 +191,22 @@ public sealed class WorkspaceSessionService : IWorkspaceSessionService
         CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(projectReference);
+        _lastRetryRequest = RetryRequest.CreateProjectReference(projectReference);
 
         await _gate.WaitAsync(cancellationToken).ConfigureAwait(false);
 
         try
         {
             await EnsureInitializedCoreAsync(cancellationToken).ConfigureAwait(false);
-            StartLifecycleOperation($"Opening {projectReference.DisplayName}.");
+            SpineProjectSession? existingSession = _state.CurrentSession;
+            StartLifecycleOperation(existingSession, $"Opening {projectReference.DisplayName}.");
 
             ResolveSpineProjectResult resolveResult = await _projectReferenceResolver
                 .ResolveForReopenAsync(projectReference, cancellationToken)
                 .ConfigureAwait(false);
 
             await CompleteOpenFromResolveAsync(
+                existingSession,
                 resolveResult,
                 "Opened",
                 "Failed to open",
@@ -197,11 +215,67 @@ public sealed class WorkspaceSessionService : IWorkspaceSessionService
         catch (OperationCanceledException)
         {
             FinishLifecycleOperation(
-                null,
+                _state.CurrentSession,
                 Array.Empty<ViewerDiagnostic>(),
                 "Open canceled.",
                 false);
             throw;
+        }
+        finally
+        {
+            _gate.Release();
+        }
+    }
+
+    /// <inheritdoc />
+    public async Task RemoveRecentProjectAsync(
+        SpineProjectReference projectReference,
+        CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(projectReference);
+
+        await _gate.WaitAsync(cancellationToken).ConfigureAwait(false);
+
+        try
+        {
+            await EnsureInitializedCoreAsync(cancellationToken).ConfigureAwait(false);
+            await _recentFilesService.RemoveAsync(projectReference, cancellationToken).ConfigureAwait(false);
+
+            IReadOnlyList<SpineProjectReference> recentFiles = await _recentFilesService
+                .GetRecentFilesAsync(cancellationToken)
+                .ConfigureAwait(false);
+
+            PublishState(
+                CreateWorkspaceState(
+                    _state.CurrentSession,
+                    recentFiles,
+                    _state.Diagnostics,
+                    $"Removed {projectReference.DisplayName} from recent projects.",
+                    false));
+        }
+        finally
+        {
+            _gate.Release();
+        }
+    }
+
+    /// <inheritdoc />
+    public async Task ClearRecentProjectsAsync(CancellationToken cancellationToken)
+    {
+        await _gate.WaitAsync(cancellationToken).ConfigureAwait(false);
+
+        try
+        {
+            await EnsureInitializedCoreAsync(cancellationToken).ConfigureAwait(false);
+            await _recentFilesService.ClearAsync(cancellationToken).ConfigureAwait(false);
+
+            PublishState(
+                CreateWorkspaceState(
+                    _state.CurrentSession,
+                    Array.Empty<SpineProjectReference>(),
+                    _state.Diagnostics,
+                    "Cleared recent projects.",
+                    false));
         }
         finally
         {
@@ -229,13 +303,16 @@ public sealed class WorkspaceSessionService : IWorkspaceSessionService
             }
 
             SpineProjectReference projectReference = _state.CurrentSession.Project;
-            StartLifecycleOperation($"Reloading {projectReference.DisplayName}.");
+            SpineProjectSession existingSession = _state.CurrentSession;
+            _lastRetryRequest = RetryRequest.CreateProjectReference(projectReference);
+            StartLifecycleOperation(existingSession, $"Reloading {projectReference.DisplayName}.");
 
             ResolveSpineProjectResult resolveResult = await _projectReferenceResolver
                 .ResolveForReopenAsync(projectReference, cancellationToken)
                 .ConfigureAwait(false);
 
             await CompleteOpenFromResolveAsync(
+                existingSession,
                 resolveResult,
                 "Reloaded",
                 "Failed to reload",
@@ -244,7 +321,7 @@ public sealed class WorkspaceSessionService : IWorkspaceSessionService
         catch (OperationCanceledException)
         {
             FinishLifecycleOperation(
-                null,
+                _state.CurrentSession,
                 Array.Empty<ViewerDiagnostic>(),
                 "Reload canceled.",
                 false);
@@ -293,13 +370,16 @@ public sealed class WorkspaceSessionService : IWorkspaceSessionService
                 return;
             }
 
-            StartLifecycleOperation($"Restoring {viewerSettings.LastProjectReference.DisplayName}.");
+            SpineProjectSession? existingSession = _state.CurrentSession;
+            _lastRetryRequest = RetryRequest.CreateProjectReference(viewerSettings.LastProjectReference);
+            StartLifecycleOperation(existingSession, $"Restoring {viewerSettings.LastProjectReference.DisplayName}.");
 
             ResolveSpineProjectResult resolveResult = await _projectReferenceResolver
                 .ResolveForReopenAsync(viewerSettings.LastProjectReference, cancellationToken)
                 .ConfigureAwait(false);
 
             await CompleteOpenFromResolveAsync(
+                existingSession,
                 resolveResult,
                 "Restored",
                 "Failed to restore",
@@ -308,7 +388,7 @@ public sealed class WorkspaceSessionService : IWorkspaceSessionService
         catch (OperationCanceledException)
         {
             FinishLifecycleOperation(
-                null,
+                _state.CurrentSession,
                 Array.Empty<ViewerDiagnostic>(),
                 "Restore canceled.",
                 false);
@@ -318,6 +398,22 @@ public sealed class WorkspaceSessionService : IWorkspaceSessionService
         {
             _gate.Release();
         }
+    }
+
+    /// <inheritdoc />
+    public Task RetryLastOpenAsync(CancellationToken cancellationToken)
+    {
+        if (_lastRetryRequest is null)
+        {
+            return Task.CompletedTask;
+        }
+
+        return _lastRetryRequest.Kind == RetryRequestKind.Selection
+            ? OpenAsync(
+                _lastRetryRequest.SelectedPath!,
+                _lastRetryRequest.CompanionPath,
+                cancellationToken)
+            : OpenAsync(_lastRetryRequest.ProjectReference!, cancellationToken);
     }
 
     /// <inheritdoc />
@@ -386,6 +482,20 @@ public sealed class WorkspaceSessionService : IWorkspaceSessionService
             _state.IsBusy);
     }
 
+    /// <inheritdoc />
+    public void UpdatePreferredRuntimeId(string? runtimeId)
+    {
+        string? normalizedRuntimeId = string.IsNullOrWhiteSpace(runtimeId)
+            ? null
+            : runtimeId;
+        if (string.Equals(_state.PreferredRuntimeId, normalizedRuntimeId, StringComparison.OrdinalIgnoreCase))
+        {
+            return;
+        }
+
+        PublishState(_state with { PreferredRuntimeId = normalizedRuntimeId });
+    }
+
     private static IReadOnlyList<ViewerDiagnostic> MergeDiagnostics(
         params IEnumerable<ViewerDiagnostic>[] diagnosticGroups)
     {
@@ -396,6 +506,7 @@ public sealed class WorkspaceSessionService : IWorkspaceSessionService
     }
 
     private async Task CompleteOpenFromResolveAsync(
+        SpineProjectSession? fallbackSession,
         ResolveSpineProjectResult resolveResult,
         string successVerb,
         string failureVerb,
@@ -412,7 +523,7 @@ public sealed class WorkspaceSessionService : IWorkspaceSessionService
 
             string failedDisplayName = resolveResult.ProjectReference?.DisplayName ?? "project";
             FinishLifecycleOperation(
-                null,
+                fallbackSession,
                 resolveResult.Diagnostics,
                 $"{failureVerb} {failedDisplayName}.",
                 false);
@@ -428,7 +539,8 @@ public sealed class WorkspaceSessionService : IWorkspaceSessionService
                 new RuntimeSelectionRequest(
                     resolveResult.ProjectReference,
                     resolveResult.AssetFileSet,
-                    versionMatch),
+                    versionMatch,
+                    _state.PreferredRuntimeId),
                 cancellationToken)
             .ConfigureAwait(false);
 
@@ -442,7 +554,7 @@ public sealed class WorkspaceSessionService : IWorkspaceSessionService
             await RefreshRecentFilesCoreAsync(cancellationToken).ConfigureAwait(false);
 
             FinishLifecycleOperation(
-                null,
+                fallbackSession,
                 failedDiagnostics,
                 $"{failureVerb} {resolveResult.ProjectReference.DisplayName}.",
                 false);
@@ -473,7 +585,7 @@ public sealed class WorkspaceSessionService : IWorkspaceSessionService
             await RefreshRecentFilesCoreAsync(cancellationToken).ConfigureAwait(false);
 
             FinishLifecycleOperation(
-                null,
+                fallbackSession,
                 mergedLoadResult.Diagnostics,
                 $"{failureVerb} {resolveResult.ProjectReference.DisplayName}.",
                 false);
@@ -521,14 +633,7 @@ public sealed class WorkspaceSessionService : IWorkspaceSessionService
         string statusText,
         bool isBusy)
     {
-        _state = new WorkspaceState(
-            currentSession,
-            _state.RecentFiles,
-            diagnostics,
-            statusText,
-            isBusy);
-
-        StateChanged?.Invoke(this, EventArgs.Empty);
+        PublishState(CreateWorkspaceState(currentSession, _state.RecentFiles, diagnostics, statusText, isBusy));
     }
 
     private async Task PersistLastProjectReferenceCoreAsync(
@@ -552,25 +657,66 @@ public sealed class WorkspaceSessionService : IWorkspaceSessionService
             .GetRecentFilesAsync(cancellationToken)
             .ConfigureAwait(false);
 
-        _state = new WorkspaceState(
-            _state.CurrentSession,
-            recentFiles,
-            _state.Diagnostics,
-            _state.StatusText,
-            _state.IsBusy);
-
-        StateChanged?.Invoke(this, EventArgs.Empty);
+        PublishState(CreateWorkspaceState(_state.CurrentSession, recentFiles, _state.Diagnostics, _state.StatusText, _state.IsBusy));
     }
 
-    private void StartLifecycleOperation(string statusText)
+    private void StartLifecycleOperation(
+        SpineProjectSession? currentSession,
+        string statusText)
     {
-        _state = new WorkspaceState(
-            null,
-            _state.RecentFiles,
-            Array.Empty<ViewerDiagnostic>(),
-            statusText,
-            true);
+        PublishState(CreateWorkspaceState(currentSession, _state.RecentFiles, Array.Empty<ViewerDiagnostic>(), statusText, true));
+    }
 
-        StateChanged?.Invoke(this, EventArgs.Empty);
+    private WorkspaceState CreateWorkspaceState(
+        SpineProjectSession? currentSession,
+        IReadOnlyList<SpineProjectReference> recentFiles,
+        IReadOnlyList<ViewerDiagnostic> diagnostics,
+        string statusText,
+        bool isBusy)
+    {
+        return new WorkspaceState(
+            currentSession,
+            recentFiles,
+            diagnostics,
+            statusText,
+            isBusy)
+        {
+            PreferredRuntimeId = _state.PreferredRuntimeId,
+        };
+    }
+
+    private void PublishState(WorkspaceState workspaceState)
+    {
+        _uiDispatcher.Invoke(
+            () =>
+            {
+                _state = workspaceState;
+                StateChanged?.Invoke(this, EventArgs.Empty);
+            });
+    }
+
+    private enum RetryRequestKind
+    {
+        Selection,
+        ProjectReference,
+    }
+
+    private sealed record RetryRequest(
+        RetryRequestKind Kind,
+        string? SelectedPath,
+        string? CompanionPath,
+        SpineProjectReference? ProjectReference)
+    {
+        public static RetryRequest CreateProjectReference(SpineProjectReference projectReference)
+        {
+            ArgumentNullException.ThrowIfNull(projectReference);
+            return new RetryRequest(RetryRequestKind.ProjectReference, null, null, projectReference);
+        }
+
+        public static RetryRequest CreateSelection(string selectedPath, string? companionPath)
+        {
+            ArgumentException.ThrowIfNullOrWhiteSpace(selectedPath);
+            return new RetryRequest(RetryRequestKind.Selection, selectedPath, companionPath, null);
+        }
     }
 }

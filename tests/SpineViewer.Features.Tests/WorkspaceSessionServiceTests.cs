@@ -91,7 +91,7 @@ public sealed class WorkspaceSessionServiceTests
     }
 
     [Fact]
-    public async Task OpenAsync_WhenResolutionFails_ClearsStaleSessionAsync()
+    public async Task OpenAsync_WhenResolutionFails_PreservesExistingSessionAndReportsFailureAsync()
     {
         SpineProjectReference heroProject = CreateProjectReference("Hero");
         TestProjectReferenceResolver resolver = new();
@@ -116,13 +116,86 @@ public sealed class WorkspaceSessionServiceTests
             new TestRecentFilesService());
 
         await service.OpenAsync("hero.json", null, CancellationToken.None);
-        Assert.NotNull(service.State.CurrentSession);
+        Guid originalSessionId = Assert.IsType<SpineProjectSession>(service.State.CurrentSession).SessionId;
 
         await service.OpenAsync("broken.json", null, CancellationToken.None);
 
-        Assert.Null(service.State.CurrentSession);
+        SpineProjectSession session = Assert.IsType<SpineProjectSession>(service.State.CurrentSession);
+        Assert.Equal(originalSessionId, session.SessionId);
         Assert.Contains(service.State.Diagnostics, static diagnostic => diagnostic.Code == "resolve-failed");
         Assert.StartsWith("Failed to open", service.State.StatusText, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task RetryLastOpenAsync_ReplaysFailedSelectionAsync()
+    {
+        SpineProjectReference heroProject = CreateProjectReference("Hero");
+        TestProjectReferenceResolver resolver = new();
+        resolver.SetSelectionResult(
+            "broken.json",
+            new ResolveSpineProjectResult(
+                false,
+                heroProject,
+                null,
+                [
+                    new ViewerDiagnostic(
+                        "resolve-failed",
+                        ViewerDiagnosticSeverity.Error,
+                        "The project could not be resolved.",
+                        "Test"),
+                ]));
+        WorkspaceSessionService service = CreateService(
+            resolver,
+            new TestSettingsRepository(new ViewerSettings()),
+            new TestRecentFilesService());
+
+        await service.OpenAsync("broken.json", null, CancellationToken.None);
+        Assert.True(service.CanRetryLastOpen);
+
+        resolver.SetSelectionResult("broken.json", CreateSuccessfulResolveResult(heroProject));
+
+        await service.RetryLastOpenAsync(CancellationToken.None);
+
+        Assert.Equal("broken.json", resolver.LastSelectedPath);
+        Assert.Equal("Hero", Assert.IsType<SpineProjectSession>(service.State.CurrentSession).Project.DisplayName);
+    }
+
+    [Fact]
+    public async Task ReloadAsync_WhenReloadFails_PreservesExistingSessionAsync()
+    {
+        SpineProjectReference heroProject = CreateProjectReference("Hero");
+        TestProjectReferenceResolver resolver = new();
+        resolver.SetSelectionResult("hero.json", CreateSuccessfulResolveResult(heroProject));
+        resolver.SetReopenResult(
+            heroProject,
+            new ResolveSpineProjectResult(
+                false,
+                heroProject,
+                null,
+                [
+                    new ViewerDiagnostic(
+                        "project-resolution-skeleton-missing",
+                        ViewerDiagnosticSeverity.Error,
+                        "The skeleton file could not be found.",
+                        "Resolver"),
+                ]));
+
+        WorkspaceSessionService service = CreateService(
+            resolver,
+            new TestSettingsRepository(new ViewerSettings()),
+            new TestRecentFilesService());
+
+        await service.OpenAsync("hero.json", null, CancellationToken.None);
+        Guid originalSessionId = Assert.IsType<SpineProjectSession>(service.State.CurrentSession).SessionId;
+
+        await service.ReloadAsync(CancellationToken.None);
+
+        SpineProjectSession session = Assert.IsType<SpineProjectSession>(service.State.CurrentSession);
+        Assert.Equal(originalSessionId, session.SessionId);
+        Assert.Contains(
+            service.State.Diagnostics,
+            static diagnostic => diagnostic.Code == "project-resolution-skeleton-missing");
+        Assert.StartsWith("Failed to reload", service.State.StatusText, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -222,6 +295,49 @@ public sealed class WorkspaceSessionServiceTests
         Assert.Equal("Winter", session.SelectedSkinName);
     }
 
+    [Fact]
+    public async Task OpenAsync_RaisesStateChangedInsideUiDispatcherAsync()
+    {
+        SpineProjectReference heroProject = CreateProjectReference("Hero");
+        TestProjectReferenceResolver resolver = new();
+        resolver.SetSelectionResult("hero.json", CreateSuccessfulResolveResult(heroProject));
+        RecordingUiDispatcher uiDispatcher = new();
+        WorkspaceSessionService service = CreateService(
+            resolver,
+            new TestSettingsRepository(new ViewerSettings()),
+            new TestRecentFilesService(),
+            uiDispatcher);
+        List<bool> eventContexts = [];
+        service.StateChanged += (_, _) => eventContexts.Add(uiDispatcher.IsInvoking);
+
+        await service.OpenAsync("hero.json", null, CancellationToken.None);
+
+        Assert.NotEmpty(eventContexts);
+        Assert.All(eventContexts, Assert.True);
+        Assert.True(uiDispatcher.InvocationCount > 0);
+    }
+
+    [Fact]
+    public async Task OpenAsync_UsesPreferredRuntimeOverrideForSelectionAsync()
+    {
+        SpineProjectReference heroProject = CreateProjectReference("Hero");
+        TestProjectReferenceResolver resolver = new();
+        resolver.SetSelectionResult("hero.json", CreateSuccessfulResolveResult(heroProject));
+        TestRuntimeSelectionService runtimeSelectionService = new();
+        WorkspaceSessionService service = CreateService(
+            resolver,
+            new TestSettingsRepository(new ViewerSettings()),
+            new TestRecentFilesService(),
+            runtimeSelectionService: runtimeSelectionService);
+
+        service.UpdatePreferredRuntimeId("spine-3.8.95");
+
+        await service.OpenAsync("hero.json", null, CancellationToken.None);
+
+        Assert.Equal("spine-3.8.95", runtimeSelectionService.LastRequest?.PreferredRuntimeId);
+        Assert.Equal("spine-3.8.95", service.State.PreferredRuntimeId);
+    }
+
     private static ResolveSpineProjectResult CreateSuccessfulResolveResult(SpineProjectReference projectReference)
     {
         return new ResolveSpineProjectResult(
@@ -243,16 +359,51 @@ public sealed class WorkspaceSessionServiceTests
     private static WorkspaceSessionService CreateService(
         TestProjectReferenceResolver resolver,
         TestSettingsRepository settingsRepository,
-        TestRecentFilesService recentFilesService)
+        TestRecentFilesService recentFilesService,
+        IUiDispatcher? uiDispatcher = null,
+        TestRuntimeSelectionService? runtimeSelectionService = null)
     {
         return new WorkspaceSessionService(
             resolver,
             new TestVersionDetectionService(),
-            new TestRuntimeSelectionService(),
+            runtimeSelectionService ?? new TestRuntimeSelectionService(),
             new TestProjectLoader(),
             new TestSpineSessionFactory(),
             recentFilesService,
-            new ViewerSettingsService(settingsRepository));
+            new ViewerSettingsService(settingsRepository, uiDispatcher ?? new InlineUiDispatcher()),
+            uiDispatcher ?? new InlineUiDispatcher());
+    }
+
+    private sealed class InlineUiDispatcher : IUiDispatcher
+    {
+        public void Invoke(Action callback)
+        {
+            ArgumentNullException.ThrowIfNull(callback);
+            callback();
+        }
+    }
+
+    private sealed class RecordingUiDispatcher : IUiDispatcher
+    {
+        public int InvocationCount { get; private set; }
+
+        public bool IsInvoking { get; private set; }
+
+        public void Invoke(Action callback)
+        {
+            ArgumentNullException.ThrowIfNull(callback);
+            InvocationCount++;
+            IsInvoking = true;
+
+            try
+            {
+                callback();
+            }
+            finally
+            {
+                IsInvoking = false;
+            }
+        }
     }
 
     private sealed class TestProjectLoader : ISpineProjectLoader
@@ -335,6 +486,21 @@ public sealed class WorkspaceSessionServiceTests
             return Task.FromResult<IReadOnlyList<SpineProjectReference>>(_entries.ToArray());
         }
 
+        public Task ClearAsync(CancellationToken cancellationToken)
+        {
+            _entries.Clear();
+            return Task.CompletedTask;
+        }
+
+        public Task RemoveAsync(SpineProjectReference projectReference, CancellationToken cancellationToken)
+        {
+            _entries.RemoveAll(
+                existingReference =>
+                    string.Equals(existingReference.SkeletonPath, projectReference.SkeletonPath, StringComparison.OrdinalIgnoreCase) &&
+                    string.Equals(existingReference.AtlasPath, projectReference.AtlasPath, StringComparison.OrdinalIgnoreCase));
+            return Task.CompletedTask;
+        }
+
         public Task RemoveMissingEntriesAsync(CancellationToken cancellationToken)
         {
             return Task.CompletedTask;
@@ -343,10 +509,13 @@ public sealed class WorkspaceSessionServiceTests
 
     private sealed class TestRuntimeSelectionService : IRuntimeSelectionService
     {
+        public RuntimeSelectionRequest? LastRequest { get; private set; }
+
         public Task<RuntimeSelectionResult> SelectAsync(
             RuntimeSelectionRequest request,
             CancellationToken cancellationToken)
         {
+            LastRequest = request;
             SpineRuntimeDescriptor runtimeDescriptor = new(
                 "spine-4.1.00",
                 "Spine 4.1.00",

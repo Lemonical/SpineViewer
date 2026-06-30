@@ -60,6 +60,11 @@ public sealed record WorkspaceState
     public bool HasSession => CurrentSession is not null;
 
     /// <summary>
+    /// Gets the preferred runtime identifier requested for the next load or reload, if any.
+    /// </summary>
+    public string? PreferredRuntimeId { get; init; }
+
+    /// <summary>
     /// Gets a value indicating whether the current workspace can be reloaded.
     /// </summary>
     public bool CanReload => CurrentSession is not null && !IsBusy;

@@ -1,4 +1,5 @@
 using SpineViewer.Core.Models;
+using SpineViewer.Infrastructure.Spine.Adapters;
 using SpineViewer.Infrastructure.Spine.Loading;
 using Xunit;
 
@@ -81,6 +82,7 @@ public sealed class SpineProjectInspectorTests
             SpineProjectInspector inspector = new();
             SpineProjectInspection inspection = await inspector.InspectAsync(
                 new SpineAssetFileSet(skeletonPath, atlasPath, [Path.Combine(tempDirectory, "hero.png")]),
+                new Spine41RuntimeAdapter().Descriptor,
                 CancellationToken.None);
 
             Assert.Equal("4.1.00", inspection.ExportMetadata.ExportVersion);
@@ -104,42 +106,28 @@ public sealed class SpineProjectInspectorTests
     }
 
     [Fact]
-    public async Task InspectAsync_WithBinarySkeleton_ReturnsLimitedInspectionDiagnosticAsync()
+    public async Task InspectAsync_WithAiriBinaryFixture_ExtractsAnimationMetadataAsync()
     {
-        string tempDirectory = CreateTempDirectory();
+        string fixtureDirectory = GetFixtureDirectory("airi_spr");
+        string skeletonPath = Path.Combine(fixtureDirectory, "airi_spr.skel");
+        string atlasPath = Path.Combine(fixtureDirectory, "airi_spr.atlas");
+        string[] texturePaths = Directory.GetFiles(fixtureDirectory, "*.png");
 
-        try
-        {
-            string skeletonPath = Path.Combine(tempDirectory, "hero.skel");
-            string atlasPath = Path.Combine(tempDirectory, "hero.atlas");
-            await File.WriteAllBytesAsync(skeletonPath, [0x01, 0x02, 0x03]);
-            await File.WriteAllTextAsync(
-                atlasPath,
-                """
-                hero.png
-                size: 256, 128
-                region
-                rotate: false
-                size: 32, 16
-                orig: 32, 16
-                
-                """);
+        SpineProjectInspector inspector = new();
+        SpineProjectInspection inspection = await inspector.InspectAsync(
+            new SpineAssetFileSet(skeletonPath, atlasPath, texturePaths),
+            new Spine38RuntimeAdapter().Descriptor,
+            CancellationToken.None);
 
-            SpineProjectInspector inspector = new();
-            SpineProjectInspection inspection = await inspector.InspectAsync(
-                new SpineAssetFileSet(skeletonPath, atlasPath, [Path.Combine(tempDirectory, "hero.png")]),
-                CancellationToken.None);
-
-            Assert.Contains(
-                inspection.Diagnostics,
-                static diagnostic => diagnostic.Code == "inspection-binary-skeleton-limited");
-            Assert.Empty(inspection.Animations);
-            Assert.Equal("hero.png", Assert.Single(inspection.AtlasPages).Name);
-        }
-        finally
-        {
-            Directory.Delete(tempDirectory, recursive: true);
-        }
+        Assert.Equal(11, inspection.Animations.Count);
+        Assert.Contains(inspection.Animations, static animation => animation.Name == "Idle_01");
+        Assert.Contains(inspection.Animations, static animation => animation.Name == "Eye_Close_01");
+        Assert.NotEmpty(inspection.Bones);
+        Assert.NotEmpty(inspection.Slots);
+        Assert.NotEmpty(inspection.Attachments);
+        Assert.DoesNotContain(
+            inspection.Diagnostics,
+            static diagnostic => diagnostic.Code == "inspection-binary-skeleton-load-failed");
     }
 
     private static string CreateTempDirectory()
@@ -147,5 +135,23 @@ public sealed class SpineProjectInspectorTests
         string tempDirectory = Path.Combine(Path.GetTempPath(), $"spineviewer-tests-{Guid.NewGuid():N}");
         Directory.CreateDirectory(tempDirectory);
         return tempDirectory;
+    }
+
+    private static string GetFixtureDirectory(string relativePath)
+    {
+        DirectoryInfo? current = new(AppContext.BaseDirectory);
+
+        while (current is not null)
+        {
+            string candidate = Path.Combine(current.FullName, "tests", "Fixtures", relativePath);
+            if (Directory.Exists(candidate))
+            {
+                return candidate;
+            }
+
+            current = current.Parent;
+        }
+
+        throw new DirectoryNotFoundException($"Could not locate fixture directory '{relativePath}'.");
     }
 }

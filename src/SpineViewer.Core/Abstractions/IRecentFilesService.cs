@@ -23,6 +23,21 @@ public interface IRecentFilesService
     Task AddAsync(SpineProjectReference projectReference, CancellationToken cancellationToken);
 
     /// <summary>
+    /// Removes one project reference from the recent-file list, if present.
+    /// </summary>
+    /// <param name="projectReference">The project reference to remove.</param>
+    /// <param name="cancellationToken">A token that cancels the update.</param>
+    /// <returns>A task that completes when the update is stored.</returns>
+    Task RemoveAsync(SpineProjectReference projectReference, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Clears the entire recent-file list.
+    /// </summary>
+    /// <param name="cancellationToken">A token that cancels the update.</param>
+    /// <returns>A task that completes when the update is stored.</returns>
+    Task ClearAsync(CancellationToken cancellationToken);
+
+    /// <summary>
     /// Removes entries that no longer point at valid project files.
     /// </summary>
     /// <param name="cancellationToken">A token that cancels the cleanup operation.</param>

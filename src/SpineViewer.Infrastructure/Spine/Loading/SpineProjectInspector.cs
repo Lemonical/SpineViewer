@@ -12,9 +12,11 @@ public sealed class SpineProjectInspector : ISpineProjectInspector
     /// <inheritdoc />
     public async Task<SpineProjectInspection> InspectAsync(
         SpineAssetFileSet assetFileSet,
+        SpineRuntimeDescriptor selectedRuntime,
         CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(assetFileSet);
+        ArgumentNullException.ThrowIfNull(selectedRuntime);
         cancellationToken.ThrowIfCancellationRequested();
 
         List<ViewerDiagnostic> diagnostics = [];
@@ -80,14 +82,38 @@ public sealed class SpineProjectInspector : ISpineProjectInspector
         }
         else
         {
-            diagnostics.Add(
-                new ViewerDiagnostic(
-                    "inspection-binary-skeleton-limited",
-                    ViewerDiagnosticSeverity.Information,
-                    "Binary skeleton exports expose limited structured inspection details.",
-                    nameof(SpineProjectInspector),
-                    $"Skeleton path: '{assetFileSet.SkeletonPath}'.",
-                    "Use a JSON export when you need deep inspector details such as bones, slots, or attachments."));
+            try
+            {
+                SpineRuntimeSkeletonInspectionData binaryInspection = LegacyRuntimeAssetLoader
+                    .InspectBinarySkeleton(selectedRuntime.RuntimeId, assetFileSet);
+
+                exportVersion = binaryInspection.ExportVersion;
+                imagesPath = binaryInspection.ImagesPath;
+                audioPath = binaryInspection.AudioPath;
+                width = binaryInspection.Width;
+                height = binaryInspection.Height;
+                framesPerSecond = binaryInspection.FramesPerSecond;
+                animations.AddRange(binaryInspection.Animations);
+                skins.AddRange(binaryInspection.Skins);
+                bones.AddRange(binaryInspection.Bones);
+                slots.AddRange(binaryInspection.Slots);
+                attachments.AddRange(binaryInspection.Attachments);
+            }
+            catch (LegacyRuntimeAssetLoader.LoadException exception)
+            {
+                diagnostics.Add(CreateBinaryInspectionDiagnostic(assetFileSet, selectedRuntime, exception));
+            }
+            catch (ArgumentOutOfRangeException exception)
+            {
+                diagnostics.Add(
+                    new ViewerDiagnostic(
+                        "inspection-binary-runtime-unsupported",
+                        ViewerDiagnosticSeverity.Warning,
+                        "Structured inspector details are not available for the selected runtime.",
+                        nameof(SpineProjectInspector),
+                        exception.Message,
+                        "Choose a supported runtime and open the project again."));
+            }
         }
 
         try
@@ -138,6 +164,41 @@ public sealed class SpineProjectInspector : ISpineProjectInspector
                 .ThenBy(static region => region.Name, StringComparer.OrdinalIgnoreCase)
                 .ToArray(),
             diagnostics);
+    }
+
+    private static ViewerDiagnostic CreateBinaryInspectionDiagnostic(
+        SpineAssetFileSet assetFileSet,
+        SpineRuntimeDescriptor selectedRuntime,
+        LegacyRuntimeAssetLoader.LoadException exception)
+    {
+        string diagnosticCode = exception.Stage switch
+        {
+            LegacyRuntimeAssetLoader.LoadFailureStage.DependentTexture => "inspection-binary-texture-missing",
+            LegacyRuntimeAssetLoader.LoadFailureStage.Atlas => "inspection-binary-atlas-load-failed",
+            _ => "inspection-binary-skeleton-load-failed",
+        };
+
+        string message = exception.Stage switch
+        {
+            LegacyRuntimeAssetLoader.LoadFailureStage.DependentTexture => "Structured inspector details could not be extracted because a referenced texture is missing.",
+            LegacyRuntimeAssetLoader.LoadFailureStage.Atlas => "Structured inspector details could not be extracted because the atlas could not be loaded.",
+            _ => "Structured inspector details could not be extracted from the binary skeleton.",
+        };
+
+        string suggestedAction = exception.Stage switch
+        {
+            LegacyRuntimeAssetLoader.LoadFailureStage.DependentTexture => "Restore the missing atlas page textures and reopen the project.",
+            LegacyRuntimeAssetLoader.LoadFailureStage.Atlas => "Verify that the atlas matches the skeleton export and reopen the project.",
+            _ => $"Verify that '{assetFileSet.SkeletonPath}' matches the {selectedRuntime.DisplayName} runtime family.",
+        };
+
+        return new ViewerDiagnostic(
+            diagnosticCode,
+            ViewerDiagnosticSeverity.Warning,
+            message,
+            nameof(SpineProjectInspector),
+            (exception.InnerException ?? exception).Message,
+            suggestedAction);
     }
 
     private static IReadOnlyList<SpineAnimationInfo> ParseAnimations(JsonElement root)

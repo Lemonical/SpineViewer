@@ -54,6 +54,26 @@ public sealed class RecentFilesService : IRecentFilesService
     }
 
     /// <inheritdoc />
+    public async Task RemoveAsync(SpineProjectReference projectReference, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(projectReference);
+        cancellationToken.ThrowIfCancellationRequested();
+
+        IReadOnlyList<SpineProjectReference> filteredEntries = (await LoadEntriesAsync(cancellationToken).ConfigureAwait(false))
+            .Where(existingReference => !AreSameProject(existingReference, projectReference))
+            .ToArray();
+
+        await SaveEntriesAsync(filteredEntries, cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <inheritdoc />
+    public Task ClearAsync(CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        return SaveEntriesAsync(Array.Empty<SpineProjectReference>(), cancellationToken);
+    }
+
+    /// <inheritdoc />
     public async Task RemoveMissingEntriesAsync(CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();

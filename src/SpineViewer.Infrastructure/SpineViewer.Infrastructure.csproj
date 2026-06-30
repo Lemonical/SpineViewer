@@ -12,5 +12,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\\SpineViewer.Core\\SpineViewer.Core.csproj" GlobalPropertiesToRemove="NuGetInteractive" />
+    <ProjectReference Include="..\\SpineViewer.LegacyRuntime\\SpineViewer.LegacyRuntime.csproj" GlobalPropertiesToRemove="NuGetInteractive" />
   </ItemGroup>
 </Project>

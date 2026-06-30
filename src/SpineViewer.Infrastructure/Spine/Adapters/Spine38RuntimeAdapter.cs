@@ -1,7 +1,7 @@
 using SpineViewer.Core.Abstractions;
 using SpineViewer.Core.Models;
 using SpineViewer.Core.Services;
-using System.Text.Json;
+using SpineViewer.Infrastructure.Spine.Loading;
 
 namespace SpineViewer.Infrastructure.Spine.Adapters;
 
@@ -109,29 +109,11 @@ public sealed class Spine38RuntimeAdapter : ISpineRuntimeAdapter
         SpineLoadRequest request,
         CancellationToken cancellationToken)
     {
-        string extension = Path.GetExtension(request.AssetFileSet.SkeletonPath);
-
         try
         {
-            if (string.Equals(extension, ".json", StringComparison.OrdinalIgnoreCase))
-            {
-                await using FileStream stream = File.OpenRead(request.AssetFileSet.SkeletonPath);
-                using JsonDocument _ = await JsonDocument.ParseAsync(stream, cancellationToken: cancellationToken)
-                    .ConfigureAwait(false);
-            }
-            else
-            {
-                FileInfo fileInfo = new(request.AssetFileSet.SkeletonPath);
-                if (fileInfo.Length == 0)
-                {
-                    return CreateFailureResult(
-                        request,
-                        "runtime-load-empty-binary-skeleton",
-                        "The binary skeleton file is empty.",
-                        $"Skeleton path: '{request.AssetFileSet.SkeletonPath}'.",
-                        "Re-export the skeleton file and try again.");
-                }
-            }
+            cancellationToken.ThrowIfCancellationRequested();
+            IReadOnlyList<UnsupportedSpineFeature> unsupportedFeatures =
+                LegacyRuntimeAssetLoader.ValidateLoad(DescriptorInstance.RuntimeId, request.AssetFileSet);
 
             return new SpineLoadResult(
                 true,
@@ -139,26 +121,12 @@ public sealed class Spine38RuntimeAdapter : ISpineRuntimeAdapter
                 request.AssetFileSet,
                 DescriptorInstance,
                 request.VersionMatch,
-                request.ProbeResult.UnsupportedFeatures,
+                unsupportedFeatures,
                 Array.Empty<ViewerDiagnostic>());
         }
-        catch (JsonException exception)
+        catch (LegacyRuntimeAssetLoader.LoadException exception)
         {
-            return CreateFailureResult(
-                request,
-                "runtime-load-invalid-json-skeleton",
-                "The skeleton JSON could not be parsed by the selected runtime.",
-                exception.Message,
-                "Verify that the skeleton file is valid JSON and was exported correctly.");
-        }
-        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
-        {
-            return CreateFailureResult(
-                request,
-                "runtime-load-skeleton-read-failed",
-                "The selected runtime could not read the skeleton file.",
-                exception.Message,
-                "Verify that the skeleton file exists and is accessible.");
+            return CreateFailureResult(request, exception);
         }
     }
 
@@ -185,5 +153,53 @@ public sealed class Spine38RuntimeAdapter : ISpineRuntimeAdapter
             request.VersionMatch,
             request.ProbeResult.UnsupportedFeatures,
             [diagnostic]);
+    }
+
+    private static SpineLoadResult CreateFailureResult(
+        SpineLoadRequest request,
+        LegacyRuntimeAssetLoader.LoadException exception)
+    {
+        string extension = Path.GetExtension(request.AssetFileSet.SkeletonPath);
+        Exception detailsException = exception.InnerException ?? exception;
+
+        return exception.Stage switch
+        {
+            LegacyRuntimeAssetLoader.LoadFailureStage.DependentTexture => CreateFailureResult(
+                request,
+                "runtime-load-missing-dependent-texture",
+                "A texture referenced by the atlas could not be found.",
+                detailsException.Message,
+                "Verify that every atlas page texture exists next to the exported assets."),
+            LegacyRuntimeAssetLoader.LoadFailureStage.Atlas when detailsException is IOException or UnauthorizedAccessException => CreateFailureResult(
+                request,
+                "runtime-load-atlas-read-failed",
+                "The selected runtime could not read the atlas file.",
+                detailsException.Message,
+                "Verify that the atlas file exists and is accessible."),
+            LegacyRuntimeAssetLoader.LoadFailureStage.Atlas => CreateFailureResult(
+                request,
+                "runtime-load-invalid-atlas",
+                "The atlas could not be parsed by the selected runtime.",
+                detailsException.Message,
+                "Verify that the atlas file matches the exported skeleton data."),
+            LegacyRuntimeAssetLoader.LoadFailureStage.Skeleton when detailsException is IOException or UnauthorizedAccessException => CreateFailureResult(
+                request,
+                "runtime-load-skeleton-read-failed",
+                "The selected runtime could not read the skeleton file.",
+                detailsException.Message,
+                "Verify that the skeleton file exists and is accessible."),
+            LegacyRuntimeAssetLoader.LoadFailureStage.Skeleton when string.Equals(extension, ".json", StringComparison.OrdinalIgnoreCase) => CreateFailureResult(
+                request,
+                "runtime-load-invalid-json-skeleton",
+                "The skeleton JSON could not be parsed by the selected runtime.",
+                detailsException.Message,
+                "Verify that the skeleton file is valid JSON and was exported correctly."),
+            _ => CreateFailureResult(
+                request,
+                "runtime-load-invalid-binary-skeleton",
+                "The binary skeleton could not be parsed by the selected runtime.",
+                detailsException.Message,
+                "Verify that the binary skeleton matches the selected runtime family and was exported correctly."),
+        };
     }
 }
