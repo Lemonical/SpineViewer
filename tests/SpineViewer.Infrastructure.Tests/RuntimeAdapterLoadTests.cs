@@ -77,23 +77,24 @@ public sealed class RuntimeAdapterLoadTests : IDisposable
                 probeResult),
             CancellationToken.None);
 
-        Assert.True(result.IsSuccessful);
+        Assert.True(
+            result.IsSuccessful,
+            string.Join(
+                Environment.NewLine,
+                result.Diagnostics.Select(static diagnostic => $"{diagnostic.Code}: {diagnostic.Message} ({diagnostic.Details})")));
     }
 
     [Fact]
-    public async Task Spine38RuntimeAdapter_LoadAsync_ReturnsSuccessForAiriBinaryFixtureAsync()
+    public async Task Spine38RuntimeAdapter_LoadAsync_ReturnsSuccessForValidJsonSkeletonAsync()
     {
-        string fixtureDirectory = GetFixtureDirectory("airi_spr");
-        string skeletonPath = Path.Combine(fixtureDirectory, "airi_spr.skel");
-        string atlasPath = Path.Combine(fixtureDirectory, "airi_spr.atlas");
-        string[] texturePaths = Directory.GetFiles(fixtureDirectory, "*.png");
+        using SyntheticSpine38Fixture fixture = new();
         Spine38RuntimeAdapter adapter = new();
-        SpineAssetFileSet assetFileSet = new(skeletonPath, atlasPath, texturePaths);
+        SpineAssetFileSet assetFileSet = fixture.CreateAssetFileSet();
         SpineRuntimeProbeResult probeResult = await adapter.ProbeAsync(assetFileSet, CancellationToken.None);
 
         SpineLoadResult result = await adapter.LoadAsync(
             new SpineLoadRequest(
-                new SpineProjectReference("Airi", skeletonPath, atlasPath),
+                new SpineProjectReference("Hero", fixture.SkeletonPath, fixture.AtlasPath),
                 assetFileSet,
                 new SpineVersionMatch("3.8.95", "spine-3.8.95", true, Array.Empty<ViewerDiagnostic>()),
                 probeResult),
@@ -155,23 +156,5 @@ public sealed class RuntimeAdapterLoadTests : IDisposable
         string fullPath = Path.Combine(_temporaryDirectory, relativePath);
         File.WriteAllText(fullPath, content);
         return fullPath;
-    }
-
-    private static string GetFixtureDirectory(string relativePath)
-    {
-        DirectoryInfo? current = new(AppContext.BaseDirectory);
-
-        while (current is not null)
-        {
-            string candidate = Path.Combine(current.FullName, "tests", "Fixtures", relativePath);
-            if (Directory.Exists(candidate))
-            {
-                return candidate;
-            }
-
-            current = current.Parent;
-        }
-
-        throw new DirectoryNotFoundException($"Could not locate fixture directory '{relativePath}'.");
     }
 }
