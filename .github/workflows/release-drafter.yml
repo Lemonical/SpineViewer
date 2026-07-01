@@ -15,7 +15,22 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Check out repository
+        uses: actions/checkout@v5
+
+      - name: Read app version
+        id: app_version
+        shell: bash
+        run: |
+          set -euo pipefail
+          version="$(grep -oPm1 '(?<=<Version>)[^<]+' Directory.Build.props)"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
       - name: Update release draft
         uses: release-drafter/release-drafter@v6
+        with:
+          version: ${{ steps.app_version.outputs.version }}
+          tag: v${{ steps.app_version.outputs.version }}
+          name: v${{ steps.app_version.outputs.version }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
