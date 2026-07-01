@@ -40,7 +40,7 @@ public sealed class CompositionRootSmokeTests
         string repositoryRoot = GetRepositoryRoot();
         string projectPath = Path.Combine(repositoryRoot, "src", "SpineViewer.Desktop", "SpineViewer.Desktop.csproj");
 
-        ProcessStartInfo startInfo = new("dotnet", $"run --project \"{projectPath}\" --configuration Release --no-restore -- --smoke-test")
+        ProcessStartInfo startInfo = new("dotnet", $"run --project \"{projectPath}\" --configuration Release --no-build --no-restore -- --smoke-test")
         {
             RedirectStandardError = true,
             RedirectStandardOutput = true,
